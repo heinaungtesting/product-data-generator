@@ -89,8 +89,44 @@ const extractGooglePayload = (payload: unknown) => {
   }
 };
 
+type RateLimiterEntry = {
+  count: number;
+  windowStart: number;
+};
+
+const rateLimiter = new Map<string, RateLimiterEntry>();
+
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const RATE_LIMIT_MAX_CALLS = 10;
+const MAX_AUTOFILL_NAME_LENGTH = 150;
+
+const allowRequest = (identifier: string) => {
+  const now = Date.now();
+  const existing = rateLimiter.get(identifier);
+
+  if (!existing || now - existing.windowStart >= RATE_LIMIT_WINDOW_MS) {
+    rateLimiter.set(identifier, { count: 1, windowStart: now });
+    return true;
+  }
+
+  if (existing.count >= RATE_LIMIT_MAX_CALLS) {
+    return false;
+  }
+
+  existing.count += 1;
+  return true;
+};
+
 export async function POST(req: NextRequest) {
   try {
+    const contentType = req.headers.get("content-type") ?? "";
+    if (!contentType.startsWith("application/json")) {
+      return NextResponse.json(
+        { error: "Content-Type must be application/json" },
+        { status: 415 },
+      );
+    }
+
     const { englishName } = (await req.json()) ?? {};
 
     if (typeof englishName !== "string" || englishName.trim().length === 0) {
@@ -99,6 +135,17 @@ export async function POST(req: NextRequest) {
         { status: 400 },
       );
     }
+
+    if (englishName.length > MAX_AUTOFILL_NAME_LENGTH) {
+      return NextResponse.json(
+        {
+          error: `englishName must be under ${MAX_AUTOFILL_NAME_LENGTH} characters`,
+        },
+        { status: 400 },
+      );
+    }
+
+    const sanitizedEnglishName = englishName.trim();
 
     const apiKey = process.env.AI_KEY;
     const apiUrl = process.env.AI_AUTOFILL_URL;
@@ -110,17 +157,27 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const forwardedFor = req.headers.get("x-forwarded-for") ?? "";
+    const clientIp = forwardedFor.split(",")[0]?.trim() || "anonymous";
+
+    if (!allowRequest(clientIp)) {
+      return NextResponse.json(
+        { error: "Rate limit exceeded. Try again in a moment." },
+        { status: 429 },
+      );
+    }
+
     const url = new URL(apiUrl);
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
     };
 
-    let body: unknown = { englishName };
+    let body: unknown = { englishName: sanitizedEnglishName };
 
     if (url.host.includes(GOOGLE_API_HOST)) {
       headers["x-goog-api-key"] = apiKey;
       url.searchParams.set("key", apiKey);
-      body = buildGoogleRequestBody(englishName);
+      body = buildGoogleRequestBody(sanitizedEnglishName);
     } else {
       headers.Authorization = `Bearer ${apiKey}`;
     }

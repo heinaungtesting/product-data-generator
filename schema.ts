@@ -3,11 +3,33 @@ import { z } from "zod";
 export const LANGUAGES = ["en", "zh", "ko", "th"] as const;
 export type LanguageCode = (typeof LANGUAGES)[number];
 
-export const localizedTextSchema = z.object({
-  en: z.string().min(1, "English text is required"),
-  zh: z.string().min(1, "Chinese text is required"),
-  ko: z.string().min(1, "Korean text is required"),
-  th: z.string().min(1, "Thai text is required"),
+const createLocalizedTextSchema = (opts: { fieldLabel: string; maxLength: number }) =>
+  z.object(
+    Object.fromEntries(
+      LANGUAGES.map((lang) => [
+        lang,
+        z
+          .string()
+          .min(1, `${opts.fieldLabel} (${lang.toUpperCase()}) is required`)
+          .max(
+            opts.maxLength,
+            `${opts.fieldLabel} (${lang.toUpperCase()}) must be under ${opts.maxLength} characters`,
+          )
+          .refine((value) => value.trim().length > 0, {
+            message: `${opts.fieldLabel} (${lang.toUpperCase()}) cannot be blank`,
+          }),
+      ]),
+    ) as Record<LanguageCode, z.ZodString>,
+  );
+
+export const localizedTextSchema = createLocalizedTextSchema({
+  fieldLabel: "Field",
+  maxLength: 600,
+});
+
+export const localizedNameSchema = createLocalizedTextSchema({
+  fieldLabel: "Name",
+  maxLength: 150,
 });
 
 export const productSchema = z.object({
@@ -16,10 +38,27 @@ export const productSchema = z.object({
   pointValue: z
     .number()
     .int("Point value must be an integer")
-    .min(0, "Point value cannot be negative"),
-  tags: z.array(z.string().min(1)).default([]),
-  image: z.string().url("Image must be a valid URL"),
-  name: localizedTextSchema,
+    .min(0, "Point value cannot be negative")
+    .max(1_000_000, "Point value is unexpectedly large"),
+  tags: z
+    .array(
+      z
+        .string()
+        .min(1)
+        .max(40, "Tag length must be under 40 characters")
+        .refine((tag) => !/\s{2,}/.test(tag), {
+          message: "Tags cannot contain repeated whitespace",
+        }),
+    )
+    .max(25, "Too many tags specified")
+    .default([]),
+  image: z
+    .string()
+    .url("Image must be a valid URL")
+    .refine((url) => /^https:\/\//.test(url), {
+      message: "Image URL must use HTTPS",
+    }),
+  name: localizedNameSchema,
   description: localizedTextSchema,
   effects: localizedTextSchema,
   sideEffects: localizedTextSchema,
