@@ -25,7 +25,6 @@ export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) 
             <th className="px-4 py-3 text-left">Points</th>
             <th className="px-4 py-3 text-left">Tags</th>
             <th className="px-4 py-3 text-left">Updated</th>
-            <th className="px-4 py-3 text-left">Image</th>
             <th className="px-4 py-3 text-left">Actions</th>
           </tr>
         </thead>
@@ -46,20 +45,6 @@ export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) 
               </td>
               <td className="px-4 py-3 text-slate-500 dark:text-slate-400">
                 {new Date(product.updatedAt).toLocaleString()}
-              </td>
-              <td className="px-4 py-3 text-slate-500 dark:text-slate-400">
-                {product.image ? (
-                  <a
-                    href={product.image}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 underline hover:text-blue-500 dark:text-blue-400"
-                  >
-                    View
-                  </a>
-                ) : (
-                  <span className="text-slate-400">—</span>
-                )}
               </td>
               <td className="px-4 py-3">
                 <div className="flex gap-2">

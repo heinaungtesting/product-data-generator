@@ -12,6 +12,8 @@ This project bundles a Product Data Generator built with Next.js App Router, Typ
    ```bash
    cp .env.local.example .env.local
    ```
+   - `PDG_AUTH_USERNAME` and `PDG_AUTH_PASSWORD` gate access to the UI. Only requests with a valid login session can view pages or call APIs.
+   - `PDG_AUTH_SESSION_SECRET` is optional, but recommended to add extra entropy to the session cookie.
    - `AI_KEY` should be the secret token for your AI service.
    - `AI_AUTOFILL_URL` must point to the POST endpoint that accepts `{ englishName }` and returns localized fields.
 3. Start the development server:
@@ -19,16 +21,19 @@ This project bundles a Product Data Generator built with Next.js App Router, Typ
    npm run dev
    ```
 
-Open [http://localhost:3000](http://localhost:3000) to use the tool. The UI supports manual entry, CSV import, and AI autofill. Use the **Download JSON** button to validate and export `catalog-import.json`.
+Open [http://localhost:3000](http://localhost:3000) to use the tool. You will be redirected to `/login`; authenticate with the credentials from your `.env.local` to reach the catalog UI. The interface supports manual entry, CSV import, and AI autofill. Use the **Download JSON** button to validate and export `catalog-import.json`.
 
 ## Environment Variables
 
 Only the following server-side variables are required:
 
-| Variable          | Description                                                     |
-| ----------------- | --------------------------------------------------------------- |
-| `AI_KEY`          | Secret key used to authenticate with the AI autofill service.   |
-| `AI_AUTOFILL_URL` | HTTPS endpoint that returns multilingual product descriptions.  |
+| Variable                | Description                                                                 |
+| ----------------------- | --------------------------------------------------------------------------- |
+| `PDG_AUTH_USERNAME`     | Username or email used on the login form.                                  |
+| `PDG_AUTH_PASSWORD`     | Password required to sign in.                                               |
+| `PDG_AUTH_SESSION_SECRET` | Optional extra entropy for the session cookie HMAC.                       |
+| `AI_KEY`                | Secret key used to authenticate with the AI autofill service.               |
+| `AI_AUTOFILL_URL`       | HTTPS endpoint that returns multilingual product descriptions.              |
 
 > Note: Never expose these values to the client or commit them to version control.
 

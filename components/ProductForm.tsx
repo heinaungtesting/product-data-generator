@@ -91,17 +91,6 @@ export function ProductForm({
         </label>
 
         <label className="flex flex-col gap-2 text-sm font-medium text-slate-700 dark:text-slate-200">
-          Image URL
-          <input
-            type="url"
-            placeholder="https://..."
-            className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-blue-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
-            value={product.image}
-            onChange={(event) => onChange({ ...product, image: event.target.value })}
-          />
-        </label>
-
-        <label className="flex flex-col gap-2 text-sm font-medium text-slate-700 dark:text-slate-200">
           Tags (comma separated)
           <input
             type="text"

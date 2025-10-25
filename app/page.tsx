@@ -28,6 +28,7 @@ export default function Home() {
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [validationIssues, setValidationIssues] = useState<string[]>([]);
   const [theme, setTheme] = useState<Theme>("light");
+  const [signingOut, setSigningOut] = useState(false);
 
   useEffect(() => {
     const saved = window.localStorage.getItem("pdg-theme");
@@ -203,6 +204,18 @@ export default function Home() {
     }
   };
 
+  const handleSignOut = async () => {
+    if (signingOut) return;
+    setSigningOut(true);
+    try {
+      await fetch("/api/logout", { method: "POST" });
+    } catch (error) {
+      console.error("Sign-out failed", error);
+    } finally {
+      window.location.href = "/login";
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-100 pb-12 transition-colors dark:bg-slate-950">
       <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 pb-16 pt-10 sm:px-8">
@@ -225,6 +238,14 @@ export default function Home() {
               onClick={() => setTheme((current) => (current === "dark" ? "light" : "dark"))}
             >
               {theme === "dark" ? "☀️ Light Mode" : "🌙 Dark Mode"}
+            </button>
+            <button
+              type="button"
+              onClick={handleSignOut}
+              disabled={signingOut}
+              className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-70 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200"
+            >
+              {signingOut ? "Signing out..." : "Sign out"}
             </button>
           </div>
         </header>

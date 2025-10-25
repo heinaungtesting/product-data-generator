@@ -6,7 +6,7 @@ type ProductCsvImporterProps = {
   onImport: (products: ReturnType<typeof createEmptyProduct>[]) => void;
 };
 
-const REQUIRED_COLUMNS = ["name_en", "category", "pointValue", "tags", "image"] as const;
+const REQUIRED_COLUMNS = ["name_en", "category", "pointValue", "tags"] as const;
 
 function parseCsv(text: string): string[][] {
   const rows: string[][] = [];
@@ -88,7 +88,6 @@ export function ProductCsvImporter({ onImport }: ProductCsvImporterProps) {
         }
         base.category = record.category === "cosmetic" ? "cosmetic" : "health";
         base.pointValue = Number.parseInt(record.pointValue, 10) || 0;
-        base.image = record.image;
         base.tags = record.tags
           .split(",")
           .map((tag) => tag.trim())
@@ -116,7 +115,7 @@ export function ProductCsvImporter({ onImport }: ProductCsvImporterProps) {
             CSV Import (optional)
           </h3>
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            Columns: name_en, category, pointValue, tags, image
+            Columns: name_en, category, pointValue, tags
           </p>
         </div>
         <button

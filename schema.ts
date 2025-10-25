@@ -52,12 +52,6 @@ export const productSchema = z.object({
     )
     .max(25, "Too many tags specified")
     .default([]),
-  image: z
-    .string()
-    .url("Image must be a valid URL")
-    .refine((url) => /^https:\/\//.test(url), {
-      message: "Image URL must use HTTPS",
-    }),
   name: localizedNameSchema,
   description: localizedTextSchema,
   effects: localizedTextSchema,
@@ -67,7 +61,7 @@ export const productSchema = z.object({
     .string()
     .datetime({ offset: true })
     .or(z.string().datetime()),
-});
+}).passthrough();
 
 export const productPayloadSchema = z.object({
   products: z.array(productSchema),
@@ -91,7 +85,6 @@ export const createEmptyProduct = (): Product => {
     category: "health",
     pointValue: 0,
     tags: [],
-    image: "",
     name: emptyLocalizedField(),
     description: emptyLocalizedField(),
     effects: emptyLocalizedField(),
