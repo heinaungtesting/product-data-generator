@@ -19,6 +19,7 @@
 
 # production
 /build
+/public/bundle/latest.json.gz
 
 # misc
 .DS_Store

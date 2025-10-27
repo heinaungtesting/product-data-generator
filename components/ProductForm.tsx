@@ -4,10 +4,10 @@ import type { Product } from "@/schema";
 import { LANGUAGES, createEmptyProduct } from "@/schema";
 
 const LANGUAGE_LABELS: Record<(typeof LANGUAGES)[number], string> = {
+  ja: "Japanese",
   en: "English",
-  zh: "Chinese",
-  ko: "Korean",
   th: "Thai",
+  ko: "Korean",
 };
 
 const FIELD_GROUPS: Array<{
@@ -30,6 +30,11 @@ type ProductFormProps = {
   onReset: () => void;
   onAutofill: (englishName: string) => Promise<void>;
   autofillLoading?: boolean;
+  validationErrors?: Record<string, string>;
+  formError?: string | null;
+  statusMessage?: string | null;
+  autosaveStatus?: string | null;
+  onClearValidation?: (paths: string[]) => void;
 };
 
 export function ProductForm({
@@ -40,12 +45,39 @@ export function ProductForm({
   onReset,
   onAutofill,
   autofillLoading = false,
+  validationErrors,
+  formError,
+  statusMessage,
+  autosaveStatus,
+  onClearValidation,
 }: ProductFormProps) {
+  const localizedErrorKeys = useMemo(() => {
+    const keys = new Set<string>();
+    FIELD_GROUPS.forEach(({ key }) => {
+      LANGUAGES.forEach((lang) => keys.add(`${key}.${lang}`));
+    });
+    return keys;
+  }, []);
   const tagsValue = useMemo(() => product.tags.join(", "), [product.tags]);
+  const generalErrors = useMemo(
+    () =>
+      validationErrors
+        ? Object.entries(validationErrors)
+            .filter(([key]) => !localizedErrorKeys.has(key))
+            .map(([key, message]) => ({ key, message }))
+        : [],
+    [validationErrors, localizedErrorKeys],
+  );
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     onSubmit(product);
+  };
+
+  const clearFieldError = (paths: string[]) => {
+    if (onClearValidation) {
+      onClearValidation(paths);
+    }
   };
 
   return (
@@ -84,10 +116,14 @@ export function ProductForm({
             min={0}
             className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-blue-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
             value={product.pointValue}
-            onChange={(event) =>
-              onChange({ ...product, pointValue: Number.parseInt(event.target.value, 10) || 0 })
-            }
-          />
+            onChange={(event) => {
+              clearFieldError(["pointValue"]);
+              onChange({
+                ...product,
+                pointValue: Number.parseInt(event.target.value, 10) || 0,
+              });
+            }}
+            />
         </label>
 
         <label className="flex flex-col gap-2 text-sm font-medium text-slate-700 dark:text-slate-200">
@@ -97,15 +133,17 @@ export function ProductForm({
             placeholder="energy, immune, daily"
             className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-blue-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
             value={tagsValue}
-            onChange={(event) =>
+            onChange={(event) => {
+              const tags = event.target.value
+                .split(",")
+                .map((tag) => tag.trim())
+                .filter(Boolean);
+              clearFieldError(["tags"]);
               onChange({
                 ...product,
-                tags: event.target.value
-                  .split(",")
-                  .map((tag) => tag.trim())
-                  .filter(Boolean),
-              })
-            }
+                tags,
+              });
+            }}
           />
         </label>
       </div>
@@ -133,6 +171,8 @@ export function ProductForm({
                 const value = product[key][lang];
                 const labelForLang = LANGUAGE_LABELS[lang];
                 const inputId = `${key}-${lang}`;
+                const errorKey = `${key}.${lang}`;
+                const fieldError = validationErrors?.[errorKey];
 
                 return (
                   <label
@@ -144,7 +184,12 @@ export function ProductForm({
                     {multiline ? (
                       <textarea
                         id={inputId}
-                        className="min-h-[90px] rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-0 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                        aria-invalid={Boolean(fieldError)}
+                        className={`min-h-[90px] rounded-lg border px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-0 dark:bg-slate-900 dark:text-slate-100 ${
+                          fieldError
+                            ? "border-red-400 dark:border-red-500"
+                            : "border-slate-200 dark:border-slate-700"
+                        }`}
                         value={value}
                         onChange={(event) =>
                           onChange({
@@ -156,12 +201,18 @@ export function ProductForm({
                           })
                         }
                         rows={3}
+                        onFocus={() => clearFieldError([errorKey])}
                       />
                     ) : (
                       <input
                         id={inputId}
                         type="text"
-                        className="min-h-[44px] rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-0 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                        aria-invalid={Boolean(fieldError)}
+                        className={`min-h-[44px] rounded-lg border px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-0 dark:bg-slate-900 dark:text-slate-100 ${
+                          fieldError
+                            ? "border-red-400 dark:border-red-500"
+                            : "border-slate-200 dark:border-slate-700"
+                        }`}
                         value={value}
                         onChange={(event) =>
                           onChange({
@@ -172,7 +223,13 @@ export function ProductForm({
                             },
                           })
                         }
+                        onFocus={() => clearFieldError([errorKey])}
                       />
+                    )}
+                    {fieldError && (
+                      <span className="text-[11px] font-semibold text-red-500 dark:text-red-400">
+                        {fieldError}
+                      </span>
                     )}
                   </label>
                 );
@@ -189,22 +246,53 @@ export function ProductForm({
             type="text"
             className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-blue-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
             value={product.updatedAt}
-            onChange={(event) => onChange({ ...product, updatedAt: event.target.value })}
-          />
+            onChange={(event) => {
+              clearFieldError(["updatedAt"]);
+              onChange({ ...product, updatedAt: event.target.value });
+            }}
+            />
         </label>
         <button
           type="button"
           className="h-10 rounded-lg border border-slate-300 text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700"
-          onClick={() =>
+          onClick={() => {
+            clearFieldError(["updatedAt"]);
             onChange({
               ...product,
               updatedAt: new Date().toISOString(),
-            })
-          }
+            });
+          }}
         >
           Set to Now
         </button>
       </div>
+
+      {(formError || statusMessage || autosaveStatus || generalErrors.length > 0) && (
+        <div className="space-y-2 text-sm">
+          {formError && (
+            <div className="rounded-lg border border-red-300 bg-red-100/70 px-3 py-2 font-medium text-red-700 dark:border-red-700 dark:bg-red-900/30 dark:text-red-300">
+              {formError}
+            </div>
+          )}
+          {generalErrors.length > 0 && (
+            <ul className="space-y-1 text-xs text-red-500 dark:text-red-400">
+              {generalErrors.map(({ key, message }) => (
+                <li key={key}>
+                  <span className="font-semibold">{key}:</span> {message}
+                </li>
+              ))}
+            </ul>
+          )}
+          {statusMessage && (
+            <div className="rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 font-medium text-emerald-700 dark:border-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+              {statusMessage}
+            </div>
+          )}
+          {autosaveStatus && (
+            <div className="text-xs text-slate-500 dark:text-slate-400">{autosaveStatus}</div>
+          )}
+        </div>
+      )}
 
       <div className="flex flex-wrap gap-3">
         <button

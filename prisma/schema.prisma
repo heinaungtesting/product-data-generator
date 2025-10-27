@@ -1,0 +1,81 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Language {
+  ja
+  en
+  th
+  ko
+}
+
+enum ProductCategory {
+  health
+  cosmetic
+}
+
+model Product {
+  id               String          @id @default(uuid())
+  category         ProductCategory
+  pointValue       Int
+  contentUpdatedAt DateTime
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  texts ProductText[]
+  tags  ProductTag[]
+}
+
+model ProductText {
+  id          Int      @id @default(autoincrement())
+  productId   String
+  language    Language
+  name        String
+  description String
+  effects     String
+  sideEffects String
+  goodFor     String
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, language])
+}
+
+model Tag {
+  id   Int    @id @default(autoincrement())
+  name String @unique
+
+  products ProductTag[]
+}
+
+model ProductTag {
+  productId String
+  tagId     Int
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  tag     Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([productId, tagId])
+}
+
+model Draft {
+  productId String @id
+  blob      Json
+  updatedAt DateTime @updatedAt
+}
+
+model Bundle {
+  id            Int      @id @default(autoincrement())
+  path          String   @default("/bundle/latest.json.gz")
+  etag          String
+  schemaVersion String
+  builtAt       DateTime @default(now())
+  sizeBytes     Int
+
+  @@unique([path])
+}

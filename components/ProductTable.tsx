@@ -4,13 +4,37 @@ type ProductTableProps = {
   products: Product[];
   onEdit: (product: Product) => void;
   onDelete: (id: string) => void;
+  loading?: boolean;
+  emptyMessage?: string;
 };
 
-export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) {
+const formatDateTime = (value: string) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+  return date.toLocaleString();
+};
+
+export function ProductTable({
+  products,
+  onEdit,
+  onDelete,
+  loading = false,
+  emptyMessage = "No products yet. Add your first product using the form.",
+}: ProductTableProps) {
+  if (loading) {
+    return (
+      <div className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-500 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
+        Loading products…
+      </div>
+    );
+  }
+
   if (products.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
-        No products yet. Add your first product using the form.
+        {emptyMessage}
       </div>
     );
   }
@@ -20,6 +44,7 @@ export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) 
       <table className="min-w-full divide-y divide-slate-200 text-sm dark:divide-slate-700">
         <thead className="bg-slate-100 text-xs uppercase tracking-wide text-slate-600 dark:bg-slate-800 dark:text-slate-300">
           <tr>
+            <th className="px-4 py-3 text-left">Name (JA)</th>
             <th className="px-4 py-3 text-left">Name (EN)</th>
             <th className="px-4 py-3 text-left">Category</th>
             <th className="px-4 py-3 text-left">Points</th>
@@ -32,6 +57,9 @@ export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) 
           {products.map((product) => (
             <tr key={product.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/60">
               <td className="px-4 py-3 font-medium text-slate-900 dark:text-slate-100">
+                {product.name.ja}
+              </td>
+              <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
                 {product.name.en}
               </td>
               <td className="px-4 py-3 capitalize text-slate-600 dark:text-slate-300">
@@ -44,7 +72,7 @@ export function ProductTable({ products, onEdit, onDelete }: ProductTableProps) 
                 {product.tags.join(", ")}
               </td>
               <td className="px-4 py-3 text-slate-500 dark:text-slate-400">
-                {new Date(product.updatedAt).toLocaleString()}
+                {formatDateTime(product.updatedAt)}
               </td>
               <td className="px-4 py-3">
                 <div className="flex gap-2">

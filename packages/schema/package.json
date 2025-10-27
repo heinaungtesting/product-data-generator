@@ -1,0 +1,14 @@
+{
+  "name": "@pdg/schema",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./schema.json": "./schema.json"
+  },
+  "dependencies": {
+    "zod": "^4.1.12"
+  }
+}

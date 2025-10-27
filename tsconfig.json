@@ -19,7 +19,8 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@pdg/schema": ["./packages/schema/src/index.ts"]
     }
   },
   "include": [

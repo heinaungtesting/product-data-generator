@@ -1,0 +1,299 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pdg.local/schema/bundle.json",
+  "title": "BundlePayload",
+  "description": "Validated bundle payload exported by the PDG platform.",
+  "meta": {
+    "schemaVersion": "2024.10.26",
+    "generatedAt": "2025-10-26T10:44:16.290Z"
+  },
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "builtAt",
+    "products",
+    "purchaseLog"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "const": "2024.10.26"
+    },
+    "builtAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "products": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "id",
+          "category",
+          "pointValue",
+          "tags",
+          "name",
+          "description",
+          "effects",
+          "sideEffects",
+          "goodFor",
+          "updatedAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "health",
+              "cosmetic"
+            ]
+          },
+          "pointValue": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000000
+          },
+          "tags": {
+            "type": "array",
+            "maxItems": 25,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40,
+              "not": {
+                "pattern": "\\s{2,}"
+              }
+            }
+          },
+          "name": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "ja",
+              "en",
+              "th",
+              "ko"
+            ],
+            "properties": {
+              "ja": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 150,
+                "pattern": ".*\\S.*",
+                "description": "Name (JA)",
+                "not": {
+                  "pattern": "(?:治る|治癒|効く|がん|糖尿病|高血圧)"
+                }
+              },
+              "en": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 150,
+                "pattern": ".*\\S.*",
+                "description": "Name (EN)"
+              },
+              "th": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 150,
+                "pattern": ".*\\S.*",
+                "description": "Name (TH)"
+              },
+              "ko": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 150,
+                "pattern": ".*\\S.*",
+                "description": "Name (KO)"
+              }
+            }
+          },
+          "description": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "ja",
+              "en",
+              "th",
+              "ko"
+            ],
+            "properties": {
+              "ja": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 600,
+                "pattern": ".*\\S.*",
+                "description": "Description (JA)",
+                "not": {
+                  "pattern": "(?:治る|治癒|効く|がん|糖尿病|高血圧)"
+                }
+              },
+              "en": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 600,
+                "pattern": ".*\\S.*",
+                "description": "Description (EN)"
+              },
+              "th": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 600,
+                "pattern": ".*\\S.*",
+                "description": "Description (TH)"
+              },
+              "ko": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 600,
+                "pattern": ".*\\S.*",
+                "description": "Description (KO)"
+              }
+            }
+          },
+          "effects": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "ja",
+              "en",
+              "th",
+              "ko"
+            ],
+            "properties": {
+              "ja": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 600,
+                "pattern": ".*\\S.*",
+                "description": "Effects (JA)",
+                "not": {
+                  "pattern": "(?:治る|治癒|効く|がん|糖尿病|高血圧)"
+                }
+              },
+              "en": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 600,
+                "pattern": ".*\\S.*",
+                "description": "Effects (EN)"
+              },
+              "th": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 600,
+                "pattern": ".*\\S.*",
+                "description": "Effects (TH)"
+              },
+              "ko": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 600,
+                "pattern": ".*\\S.*",
+                "description": "Effects (KO)"
+              }
+            }
+          },
+          "sideEffects": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "ja",
+              "en",
+              "th",
+              "ko"
+            ],
+            "properties": {
+              "ja": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 600,
+                "pattern": ".*\\S.*",
+                "description": "Side Effects (JA)",
+                "not": {
+                  "pattern": "(?:治る|治癒|効く|がん|糖尿病|高血圧)"
+                }
+              },
+              "en": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 600,
+                "pattern": ".*\\S.*",
+                "description": "Side Effects (EN)"
+              },
+              "th": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 600,
+                "pattern": ".*\\S.*",
+                "description": "Side Effects (TH)"
+              },
+              "ko": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 600,
+                "pattern": ".*\\S.*",
+                "description": "Side Effects (KO)"
+              }
+            }
+          },
+          "goodFor": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "ja",
+              "en",
+              "th",
+              "ko"
+            ],
+            "properties": {
+              "ja": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 600,
+                "pattern": ".*\\S.*",
+                "description": "Good For (JA)",
+                "not": {
+                  "pattern": "(?:治る|治癒|効く|がん|糖尿病|高血圧)"
+                }
+              },
+              "en": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 600,
+                "pattern": ".*\\S.*",
+                "description": "Good For (EN)"
+              },
+              "th": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 600,
+                "pattern": ".*\\S.*",
+                "description": "Good For (TH)"
+              },
+              "ko": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 600,
+                "pattern": ".*\\S.*",
+                "description": "Good For (KO)"
+              }
+            }
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    },
+    "purchaseLog": {
+      "type": "array",
+      "items": {}
+    }
+  }
+}
