@@ -89,9 +89,15 @@ export function ProductForm({
         <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
           {mode === "create" ? "Add Product" : "Edit Product"}
         </h2>
-        <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
-          ID: {product.id}
-        </span>
+        {mode === "edit" ? (
+          <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+            ID: {product.id}
+          </span>
+        ) : (
+          <span className="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">
+            New product
+          </span>
+        )}
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
