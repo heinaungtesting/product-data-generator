@@ -3,43 +3,47 @@
 import Link from "next/link";
 import { useState } from "react";
 
-const SAMPLE_LINE = `{
-  "id": "b0c86df9-2dc4-4fb1-a68e-f49692ad9b1d",
-  "category": "health",
-  "pointValue": 120,
-  "tags": ["immune", "daily"],
-  "name": {
-    "ja": "免疫サポートカプセル",
-    "en": "Immune Support Capsules",
-    "th": "แคปซูลเสริมภูมิคุ้มกัน",
-    "ko": "면역 서포트 캡슐"
+const SAMPLE_LINE = JSON.stringify(
+  {
+    id: "b0c86df9-2dc4-4fb1-a68e-f49692ad9b1d",
+    category: "health",
+    pointValue: 120,
+    tags: ["immune", "daily"],
+    name: {
+      ja: "免疫サポートカプセル",
+      en: "Immune Support Capsules",
+      th: "แคปซูลเสริมภูมิคุ้มกัน",
+      ko: "면역 서포트 캡슐",
+    },
+    description: {
+      ja: "日々の健康管理を支えるサプリメント。",
+      en: "Daily supplement to support overall wellness.",
+      th: "เสริมสุขภาพประจำวันของคุณ",
+      ko: "하루 건강 관리를 돕는 영양제입니다.",
+    },
+    effects: {
+      ja: "活力と抵抗力を保つのに役立ちます。",
+      en: "Helps maintain energy and resilience.",
+      th: "ช่วยคงพลังงานและภูมิต้านทาน",
+      ko: "활력과 저항력을 유지하도록 돕습니다.",
+    },
+    sideEffects: {
+      ja: "特別な副作用は報告されていません。",
+      en: "No specific side effects reported.",
+      th: "ยังไม่มีรายงานผลข้างเคียง",
+      ko: "특별한 부작용 보고는 없습니다.",
+    },
+    goodFor: {
+      ja: "季節の変わり目のセルフケアに。",
+      en: "Perfect for seasonal self care.",
+      th: "เหมาะสำหรับดูแลตัวเองช่วงเปลี่ยนฤดูกาล",
+      ko: "환절기 셀프 케어에 적합합니다.",
+    },
+    updatedAt: new Date().toISOString(),
   },
-  "description": {
-    "ja": "日々の健康管理を支えるサプリメント。",
-    "en": "Daily supplement to support overall wellness.",
-    "th": "เสริมสุขภาพประจำวันของคุณ",
-    "ko": "하루 건강 관리를 돕는 영양제입니다."
-  },
-  "effects": {
-    "ja": "活力と抵抗力を保つのに役立ちます。",
-    "en": "Helps maintain energy and resilience.",
-    "th": "ช่วยคงพลังงานและภูมิต้านทาน",
-    "ko": "활력과 저항력을 유지하도록 돕습니다."
-  },
-  "sideEffects": {
-    "ja": "特別な副作用は報告されていません。",
-    "en": "No specific side effects reported.",
-    "th": "ยังไม่มีรายงานผลข้างเคียง",
-    "ko": "특별한 부작용 보고는 없습니다."
-  },
-  "goodFor": {
-    "ja": "季節の変わり目のセルフケアに。",
-    "en": "Perfect for seasonal self care.",
-    "th": "เหมาะสำหรับดูแลตัวเองช่วงเปลี่ยนฤดูกาล",
-    "ko": "환절기 셀프 케어에 적합합니다."
-  },
-  "updatedAt": "2024-01-01T00:00:00.000Z"
-}`;
+  null,
+  2,
+);
 
 type ImportSummary = {
   imported: number;
