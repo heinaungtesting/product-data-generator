@@ -12,6 +12,7 @@ enum Language {
   en
   th
   ko
+  zh
 }
 
 enum ProductCategory {

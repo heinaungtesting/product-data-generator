@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const SCHEMA_VERSION = "2024.10.26";
 
-export const LANGUAGES = ["ja", "en", "th", "ko"] as const;
+export const LANGUAGES = ["ja", "en", "th", "ko", "zh"] as const;
 export type LanguageCode = (typeof LANGUAGES)[number];
 
 export const MAX_NAME_LENGTH = 150;

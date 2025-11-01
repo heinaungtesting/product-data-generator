@@ -19,7 +19,7 @@ export async function GET(_request: NextRequest, context: DraftRouteContext) {
   const productId = await resolveProductId(context);
   const draft = await prisma.draft.findUnique({ where: { productId } });
   if (!draft) {
-    return NextResponse.json({ draft: null }, { status: 404 });
+    return NextResponse.json({ draft: null });
   }
   return NextResponse.json({ draft });
 }
@@ -29,7 +29,11 @@ export async function PUT(request: NextRequest, context: DraftRouteContext) {
 
   try {
     const body = await request.json();
-    const blob = body as Prisma.JsonValue;
+<<<<<<< HEAD
+    const blob = body as Prisma.InputJsonValue;
+=======
+    const blob = body as Prisma.InputJsonValue;
+>>>>>>> new-feature
     const now = new Date();
 
     await prisma.draft.upsert({

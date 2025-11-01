@@ -33,7 +33,7 @@ const buildGooglePrompt = (englishName: string) =>
     "You are assisting with multilingual product catalog descriptions.",
     `Generate localized marketing copy for the product named "${englishName}".`,
     "Return a JSON object with keys description, effects, sideEffects, and goodFor.",
-    "Each key must be an object containing the languages ja, en, th, ko with natural, culturally appropriate strings.",
+    "Each key must be an object containing the languages ja, en, th, ko, zh with natural, culturally appropriate strings.",
     "English (en) should be original marketing text. Other languages should be fluent translations, not transliterations.",
     "Do not include any additional commentary or markdown.",
   ].join("\n");
