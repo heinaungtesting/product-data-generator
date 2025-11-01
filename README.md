@@ -1,70 +1,160 @@
-## Product Data Generator
+# Product Data Generator
 
-This project bundles a Product Data Generator built with Next.js App Router, TypeScript, Prisma, and Tailwind CSS. It lets you author catalog entries backed by SQLite, autosaves in-progress drafts, validates copy against a shared Zod schema package, and continuously rebuilds a distributable bundle.
+A **fully local, privacy-first** product catalog manager built with Next.js, TypeScript, Prisma, and Tailwind CSS. Perfect for single users who want to manage multilingual product data without relying on external services or paid subscriptions.
 
-## Setup
+## ✨ Key Features
 
-1. Install dependencies (already done if you ran `npm install`):
+- **100% Local Storage** - SQLite database, no cloud services required
+- **Offline Support** - PWA with service worker for offline use
+- **Privacy First** - All data stays on your machine
+- **Free to Host** - Deploy to Vercel, Netlify, or run locally
+- **No Paid Dependencies** - AI autofill is optional with free fallback
+- **Optimized for Small Catalogs** - Max 100 items for optimal performance
+- **Multilingual Support** - Japanese, English, Thai, Korean, Chinese
+- **Auto-save Drafts** - Never lose your work
+- **Data Export** - Download all your data as JSON anytime
+
+## 🚀 Quick Start
+
+1. **Install dependencies**:
    ```bash
    npm install
    ```
-2. Copy the environment template and populate it with your credentials:
+
+2. **Copy environment template**:
    ```bash
    cp .env.local.example .env.local
    ```
-   - `PDG_AUTH_USERNAME` and `PDG_AUTH_PASSWORD` gate access to the UI. Only requests with a valid login session can view pages or call APIs.
-   - `PDG_AUTH_SESSION_SECRET` is optional, but recommended to add extra entropy to the session cookie.
-   - `AI_KEY` should be the secret token for your AI service.
-   - `AI_AUTOFILL_URL` must point to the POST endpoint that accepts `{ englishName }` and returns localized fields.
-3. Apply database migrations and generate Prisma client:
+   Edit `.env.local` and set your username/password:
+   ```env
+   PDG_AUTH_USERNAME="admin"
+   PDG_AUTH_PASSWORD="your-secure-password"
+   PDG_AUTH_SESSION_SECRET="random-secret-key"
+   DATABASE_URL="file:./prisma/dev.db"
+   ```
+
+3. **Initialize database**:
    ```bash
    npm run db:migrate
    ```
-4. Start the development server:
+
+4. **Start the app**:
    ```bash
    npm run dev
    ```
 
-Open [http://localhost:3000](http://localhost:3000) to use the tool. You will be redirected to `/login`; authenticate with the credentials from your `.env.local` to reach the catalog UI. The dashboard now supports:
+5. **Open [http://localhost:3000](http://localhost:3000)** and log in with your credentials!
 
-- Search and filters across multilingual copy, categories, and tags.
-- Autosave drafts every 800 ms with recovery banners if a newer draft exists.
-- Inline validation that blocks banned Japanese words (`治る`, `治癒`, `効く`, `がん`, `糖尿病`, `高血圧`).
-- Automatic bundle regeneration and SHA-256 ETag updates after each save or import.
-- NDJSON paste-to-import workflow at `/import` (valid rows commit in a single transaction).
-- Streaming bundle access via `/bundle/latest` which redirects to `public/bundle/latest.json.gz`.
+## 📦 Features
 
-## Environment Variables
+### Core Functionality
+- ✅ Search and filter products by name, category, tags
+- ✅ Multilingual product descriptions (5 languages)
+- ✅ Auto-save drafts every 800ms
+- ✅ Draft recovery if newer version exists
+- ✅ Validation for banned Japanese words
+- ✅ NDJSON import/export
+- ✅ JSON data export for backup
+- ✅ Automatic bundle generation
+- ✅ 100-item limit for optimal local performance
 
-Only the following server-side variables are required:
+### Privacy & Offline
+- ✅ All data stored locally in SQLite
+- ✅ PWA support for offline use
+- ✅ No external dependencies required
+- ✅ No tracking or analytics
+- ✅ Export your data anytime
 
-| Variable                | Description                                                                 |
-| ----------------------- | --------------------------------------------------------------------------- |
-| `PDG_AUTH_USERNAME`     | Username or email used on the login form.                                  |
-| `PDG_AUTH_PASSWORD`     | Password required to sign in.                                               |
-| `PDG_AUTH_SESSION_SECRET` | Optional extra entropy for the session cookie HMAC.                       |
-| `AI_KEY`                | Secret key used to authenticate with the AI autofill service.               |
-| `AI_AUTOFILL_URL`       | HTTPS endpoint that returns multilingual product descriptions.              |
-| `DATABASE_URL`          | Prisma connection string (defaults to `file:./prisma/dev.db`).              |
+### Optional Features
+- **AI Autofill** (optional, works without it)
 
-> Note: Never expose these values to the client or commit them to version control.
+  If you want to use AI autofill, add to `.env.local`:
+  ```env
+  AI_KEY="your-google-api-key"
+  AI_AUTOFILL_URL="https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
+  ```
 
-## Available Scripts
+## 🔧 Environment Variables
 
-- `npm run dev` – Start the development server with hot reload.
-- `npm run build` – Create an optimized production build.
-- `npm run start` – Start the production server after building.
-- `npm run lint` – Run ESLint on the project.
-- `npm run db:migrate` – Apply pending Prisma migrations (use after schema changes).
-- `npm run schema:json` – Regenerate the JSON Schema artifact at `packages/schema/schema.json`.
+| Variable                | Required | Description                                                    |
+| ----------------------- | -------- | -------------------------------------------------------------- |
+| `DATABASE_URL`          | Yes      | SQLite database path (default: `file:./prisma/dev.db`)        |
+| `PDG_AUTH_USERNAME`     | Yes      | Username for login                                              |
+| `PDG_AUTH_PASSWORD`     | Yes      | Password for login                                              |
+| `PDG_AUTH_SESSION_SECRET` | Yes    | Secret key for session encryption                               |
+| `AI_KEY`                | No       | Optional Google Gemini API key for AI autofill                  |
+| `AI_AUTOFILL_URL`       | No       | Optional AI endpoint URL                                        |
 
-## Deployment
+> **Note**: Never commit `.env.local` to version control!
 
-This project can be deployed to any platform that supports Next.js 16 (App Router). Ensure the required environment variables are configured (including `DATABASE_URL`) and run database migrations (`npm run db:migrate`) before serving traffic.
+## 📜 Available Scripts
 
-## Manual Verification
+- `npm run dev` – Start development server
+- `npm run build` – Create production build
+- `npm run start` – Start production server
+- `npm run lint` – Run ESLint
+- `npm run db:migrate` – Apply database migrations
+- `npm run schema:json` – Regenerate JSON schema
+- `npm test` – Run tests
 
-1. Start dev server with `npm run dev` and sign in.
-2. Create a product; confirm banned JP copy shows inline errors and that saving clears the draft.
-3. Observe `/bundle/latest` redirects and serves the latest gzip with updated ETag (check Network tab).
-4. Paste NDJSON at `/import` with a mix of valid/invalid lines; verify counts, error reporting, and refreshed products on dashboard search.
+## 🌐 Deployment
+
+### Vercel (Free Tier)
+1. Push to GitHub
+2. Import in Vercel
+3. Add environment variables
+4. Deploy!
+
+### Netlify (Free Tier)
+1. Push to GitHub
+2. Import in Netlify
+3. Add environment variables
+4. Build command: `npm run build`
+5. Publish directory: `.next`
+
+### Self-Hosted
+```bash
+npm run build
+npm run start
+```
+
+## 🔒 Privacy & Security
+
+- **Local First**: All data stored in local SQLite database
+- **No Cloud Services**: No Supabase, Firebase, or other external DBs
+- **No Analytics**: Zero tracking
+- **Simple Auth**: Username/password with session cookies
+- **Offline Capable**: Works without internet connection
+- **Data Ownership**: Export all data as JSON anytime
+
+## 💾 Data Management
+
+- **Max Items**: 100 products (optimized for single-user local storage)
+- **Export**: Click "Export Data" to download JSON backup
+- **Import**: Use NDJSON format for bulk import
+- **Backup**: All data in `prisma/dev.db` - backup this file regularly
+
+## 🛠️ Tech Stack
+
+- **Framework**: Next.js 16 (App Router)
+- **Database**: SQLite via Prisma
+- **Styling**: Tailwind CSS 4
+- **Validation**: Zod
+- **Language**: TypeScript
+- **PWA**: Custom service worker for offline support
+
+## 📝 License
+
+This project is optimized for local, single-user deployment. Feel free to modify for your needs!
+
+## 🤝 Contributing
+
+This is a personal project optimized for simplicity and privacy. Fork and customize as needed!
+
+## 📧 Support
+
+For issues or questions, please open a GitHub issue.
+
+---
+
+**Built with privacy and simplicity in mind. No subscriptions. No cloud lock-in. Just local data you control.**

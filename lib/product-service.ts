@@ -26,6 +26,7 @@ import {
 
 const LOCALIZABLE_FIELDS = ["name", "description", "effects", "sideEffects", "goodFor"] as const;
 const HAS_ZH_LANGUAGE = LANGUAGES.includes("zh" as LanguageCode);
+const MAX_PRODUCTS = 100; // Limit for local storage optimization
 
 const normalizeTags = (input: string[]): string[] => {
   const normalized = new Set<string>();
@@ -228,6 +229,17 @@ export const saveProduct = async (input: Product, tx?: Prisma.TransactionClient)
   );
   const executor = tx ?? prisma;
 
+  // Check if this is a new product
+  const existing = await executor.product.findUnique({ where: { id: parsed.id } });
+
+  // If it's a new product, check the count limit
+  if (!existing) {
+    const count = await executor.product.count();
+    if (count >= MAX_PRODUCTS) {
+      throw new Error(`Cannot add more than ${MAX_PRODUCTS} products. Please delete some products first to optimize local storage.`);
+    }
+  }
+
   const product = await executor.product.upsert({
     where: { id: parsed.id },
     create: {
@@ -379,3 +391,9 @@ export const listTags = async () => {
   const tags = await prisma.tag.findMany({ orderBy: { name: "asc" } });
   return tags.map((tag) => tag.name);
 };
+
+export const getProductCount = async () => {
+  return prisma.product.count();
+};
+
+export const getMaxProducts = () => MAX_PRODUCTS;

@@ -339,10 +339,17 @@ export default function Home() {
           <div>
             <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Product Data Generator</h1>
             <p className="text-sm text-slate-600 dark:text-slate-400">
-              Manage multilingual catalog entries, autosave drafts, and publish bundles automatically.
+              Local product catalog manager with offline support. Max 100 items for optimal performance.
             </p>
           </div>
           <div className="inline-flex gap-3">
+            <Link
+              href="/api/export"
+              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700"
+              download
+            >
+              Export Data
+            </Link>
             <Link
               href="/bundle/latest"
               className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700"

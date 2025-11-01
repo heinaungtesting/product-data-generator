@@ -150,11 +150,15 @@ export async function POST(req: NextRequest) {
     const apiKey = process.env.AI_KEY;
     const apiUrl = process.env.AI_AUTOFILL_URL;
 
+    // If no AI service is configured, return a simple template-based fallback
     if (!apiKey || !apiUrl) {
-      return NextResponse.json(
-        { error: "Server missing AI configuration. Set AI_KEY and AI_AUTOFILL_URL." },
-        { status: 500 },
-      );
+      const fallbackData = {
+        description: Object.fromEntries(LANGUAGES.map((lang) => [lang, `Product description for ${sanitizedEnglishName}`])),
+        effects: Object.fromEntries(LANGUAGES.map((lang) => [lang, `Key benefits and effects of ${sanitizedEnglishName}`])),
+        sideEffects: Object.fromEntries(LANGUAGES.map((lang) => [lang, `Consult a healthcare professional before use`])),
+        goodFor: Object.fromEntries(LANGUAGES.map((lang) => [lang, `General wellness and health support`])),
+      };
+      return NextResponse.json(fallbackData);
     }
 
     const forwardedFor = req.headers.get("x-forwarded-for") ?? "";

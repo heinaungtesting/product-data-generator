@@ -1,41 +1,46 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSupabaseAdminClient } from "@/lib/supabaseClient";
-import { fetchProductsDelta } from "@/lib/pdgRepository";
-
-const MAX_LIMIT = 200;
-
-const parseLimit = (value: string | null): number => {
-  if (!value) return MAX_LIMIT;
-  const parsed = Number.parseInt(value, 10);
-  if (!Number.isFinite(parsed) || parsed <= 0) {
-    return MAX_LIMIT;
-  }
-  return Math.min(parsed, MAX_LIMIT);
-};
+import { buildBundle, listProducts, listTags, saveProduct } from "@/lib/product-service";
+import { normalizeProductInput } from "@/lib/product-service";
+import { deleteDraft } from "@/lib/product-service";
+import { productSchema } from "@pdg/schema";
 
 export async function GET(request: NextRequest) {
-  const since = request.nextUrl.searchParams.get("since");
-  const limit = parseLimit(request.nextUrl.searchParams.get("limit"));
-
   try {
-    const client = getSupabaseAdminClient();
-    const { items, nextCursor } = await fetchProductsDelta(client, since, limit);
+    const search = request.nextUrl.searchParams.get("search") ?? undefined;
+    const categories = request.nextUrl.searchParams.getAll("category");
+    const tags = request.nextUrl.searchParams.getAll("tag");
 
-    const responseItems = items.map((item) => ({
-      externalId: item.externalId,
-      name: item.localized.name,
-      description: item.localized.description,
-      effects: item.localized.effects,
-      sideEffects: item.localized.sideEffects,
-      goodFor: item.localized.goodFor,
-      tags: item.tags,
-      images: item.images,
-      updatedAt: item.updatedAt,
-    }));
+    const products = await listProducts({ search, categories, tags });
+    const availableTags = await listTags();
 
-    return NextResponse.json({ items: responseItems, nextCursor });
+    return NextResponse.json({ products, availableTags });
   } catch (error) {
     console.error("/api/products GET error", error);
+    const message = error instanceof Error ? error.message : "Unknown error";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const product = normalizeProductInput(body);
+    const parsed = productSchema.safeParse(product);
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Validation failed", issues: parsed.error.flatten().fieldErrors },
+        { status: 400 }
+      );
+    }
+
+    await saveProduct(parsed.data);
+    await deleteDraft(parsed.data.id);
+    await buildBundle();
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("/api/products POST error", error);
     const message = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json({ error: message }, { status: 500 });
   }
