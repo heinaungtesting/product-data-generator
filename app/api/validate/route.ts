@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { productPayloadSchema } from "@/schema";
+import { productSchema } from "@/schema";
 
 export async function POST(req: NextRequest) {
   try {
     const payload = await req.json();
-    const result = productPayloadSchema.safeParse(payload);
+    const result = productSchema.safeParse(payload);
 
     if (!result.success) {
       return NextResponse.json(

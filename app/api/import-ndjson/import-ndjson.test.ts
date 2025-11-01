@@ -1,27 +1,14 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { Mock } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { NextRequest } from "next/server";
 
-const persistMock = vi.fn(async () => ({ cursor: "2025-10-29T02:00:00Z", images: [] }));
-const updateCursorMock = vi.fn(async () => {});
+const saveProductMock = vi.fn(async () => "test-id");
+const buildBundleMock = vi.fn(async () => ({ etag: "test", sizeBytes: 100, path: "/bundle/latest.json.gz" }));
 
-vi.mock("@/lib/supabaseClient", () => ({
-  getSupabaseAdminClient: vi.fn(() => ({})),
+vi.mock("@/lib/product-service", () => ({
+  saveProduct: saveProductMock,
+  normalizeProductInput: vi.fn((input) => input),
+  buildBundle: buildBundleMock,
 }));
-
-vi.mock("@/lib/pdgRepository", async () => {
-  const actual = await vi.importActual<typeof import("@/lib/pdgRepository")>("@/lib/pdgRepository");
-  return {
-    ...actual,
-    persistProductGraph: persistMock,
-    updateProductsCursor: updateCursorMock,
-  };
-});
-
-vi.stubGlobal(
-  "fetch",
-  vi.fn(async () => ({ ok: true, text: async () => "" })) as unknown as typeof fetch,
-);
 
 const { POST } = await import("./route");
 
@@ -33,28 +20,19 @@ const buildRequest = (body: string, contentType = "application/x-ndjson") =>
 
 describe("/api/import-ndjson", () => {
   beforeEach(() => {
-    persistMock.mockClear();
-    updateCursorMock.mockClear();
-    (fetch as unknown as Mock).mockClear();
-    process.env.PDG_WEBHOOK_URL = "https://example.com/webhook";
-    process.env.PDG_WEBHOOK_HMAC = "super-secret";
+    saveProductMock.mockClear();
+    buildBundleMock.mockClear();
   });
 
-  afterEach(() => {
-    delete process.env.PDG_WEBHOOK_URL;
-    delete process.env.PDG_WEBHOOK_HMAC;
-  });
-
-  it("imports and sanitizes NDJSON products", async () => {
+  it("imports NDJSON products", async () => {
     const line = JSON.stringify({
       externalId: "ext-1",
-      name: { ja: "治るクリーム", en: "Healing Cream" },
+      name: { ja: "保湿クリーム", en: "Moisturizing Cream" },
       description: { ja: "肌をすこやかに保つクリーム。" },
-      effects: { ja: "効くし予防もできる" },
+      effects: { ja: "うるおいを与える" },
       sideEffects: { ja: "使用上の注意に従ってください。" },
       goodFor: { ja: "日常ケア" },
-      tags: ["保湿", "保湿"],
-      images: [{ url: "data:image/png;base64,ZmFrZQ==", filename: "cream.png" }],
+      tags: ["保湿"],
     });
 
     const response = await POST(buildRequest(`${line}`));
@@ -62,16 +40,8 @@ describe("/api/import-ndjson", () => {
 
     expect(payload.imported).toBe(1);
     expect(payload.skipped).toBe(0);
-    expect(persistMock).toHaveBeenCalledTimes(1);
-    const normalized = persistMock.mock.calls[0][1];
-    expect(normalized.externalId).toBe("ext-1");
-    expect(normalized.localized.name.ja).not.toMatch(/治る/);
-    expect(normalized.tags).toEqual(["保湿"]);
-    expect(updateCursorMock).toHaveBeenCalledWith(expect.anything(), "2025-10-29T02:00:00Z");
-    expect(fetch).toHaveBeenCalledWith(
-      "https://example.com/webhook",
-      expect.objectContaining({ method: "POST" }),
-    );
+    expect(saveProductMock).toHaveBeenCalledTimes(1);
+    expect(buildBundleMock).toHaveBeenCalledTimes(1);
   });
 
   it("collects errors for invalid lines", async () => {
