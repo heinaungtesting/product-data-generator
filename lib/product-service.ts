@@ -25,6 +25,7 @@ import {
 } from "@pdg/schema";
 
 const LOCALIZABLE_FIELDS = ["name", "description", "effects", "sideEffects", "goodFor"] as const;
+const HAS_ZH_LANGUAGE = LANGUAGES.includes("zh" as LanguageCode);
 
 const normalizeTags = (input: string[]): string[] => {
   const normalized = new Set<string>();
@@ -40,7 +41,14 @@ const normalizeTags = (input: string[]): string[] => {
 const fillPlaceholders = (product: Product): Product => {
   LOCALIZABLE_FIELDS.forEach((field) => {
     const fieldValue = product[field];
-    const preferred = fieldValue.ja?.trim() || fieldValue.en?.trim() || fieldValue.th?.trim() || fieldValue.ko?.trim() || "";
+    let preferred = "";
+    for (const lang of LANGUAGES) {
+      const candidate = fieldValue[lang]?.trim();
+      if (candidate) {
+        preferred = candidate;
+        break;
+      }
+    }
     LANGUAGES.forEach((lang) => {
       if (!fieldValue[lang] || fieldValue[lang].trim().length === 0) {
         fieldValue[lang] = preferred;
@@ -93,10 +101,12 @@ export const normalizeProductInput = (raw: unknown): Product => {
           localized[lang] = candidate;
         }
       });
-      // Fallback for legacy keys like zh
-      const zhValue = entries["zh"];
-      if (typeof zhValue === "string" && localized.ja.trim().length === 0) {
-        localized.ja = zhValue;
+      // Fallback for legacy payloads when Chinese was stored outside the LANGUAGES tuple
+      if (!HAS_ZH_LANGUAGE) {
+        const zhValue = entries["zh"];
+        if (typeof zhValue === "string" && localized.ja.trim().length === 0) {
+          localized.ja = zhValue;
+        }
       }
     }
 
@@ -175,7 +185,6 @@ const upsertTags = async (tx: Prisma.TransactionClient, productId: string, tags:
 
   await tx.productTag.createMany({
     data: tagRecords.map((tag) => ({ productId, tagId: tag.id })),
-    skipDuplicates: true,
   });
 };
 

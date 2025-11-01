@@ -1,72 +1,42 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import {
-  buildBundle,
-  listProducts,
-  listTags,
-  normalizeProductInput,
-  saveProduct,
-} from "@/lib/product-service";
-import { ZodError } from "zod";
+import { getSupabaseAdminClient } from "@/lib/supabaseClient";
+import { fetchProductsDelta } from "@/lib/pdgRepository";
 
-const parseFilters = (request: NextRequest) => {
-  const { searchParams } = request.nextUrl;
-  const search = searchParams.get("search") ?? searchParams.get("q") ?? undefined;
-  const categories = new Set<string>();
-  const tags = new Set<string>();
+const MAX_LIMIT = 200;
 
-  const collect = (param: string, set: Set<string>) => {
-    const direct = searchParams.getAll(param);
-    direct.forEach((value) => {
-      if (value) {
-        set.add(value);
-      }
-    });
-    const combined = searchParams.get(`${param}s`);
-    if (combined) {
-      combined
-        .split(",")
-        .map((item) => item.trim())
-        .filter(Boolean)
-        .forEach((value) => set.add(value));
-    }
-  };
-
-  collect("category", categories);
-  collect("tag", tags);
-
-  return {
-    search,
-    categories: Array.from(categories),
-    tags: Array.from(tags),
-  };
+const parseLimit = (value: string | null): number => {
+  if (!value) return MAX_LIMIT;
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return MAX_LIMIT;
+  }
+  return Math.min(parsed, MAX_LIMIT);
 };
 
 export async function GET(request: NextRequest) {
-  const { search, categories, tags } = parseFilters(request);
-  const products = await listProducts({ search: search ?? undefined, categories, tags });
-  const availableTags = await listTags();
-  return NextResponse.json({ products, availableTags });
-}
+  const since = request.nextUrl.searchParams.get("since");
+  const limit = parseLimit(request.nextUrl.searchParams.get("limit"));
 
-export async function POST(request: NextRequest) {
   try {
-    const payload = await request.json();
-    const product = normalizeProductInput(payload);
+    const client = getSupabaseAdminClient();
+    const { items, nextCursor } = await fetchProductsDelta(client, since, limit);
 
-    await prisma.$transaction(async (tx) => {
-      await saveProduct(product, tx);
-      await tx.draft.delete({ where: { productId: product.id } }).catch(() => undefined);
-    });
+    const responseItems = items.map((item) => ({
+      externalId: item.externalId,
+      name: item.localized.name,
+      description: item.localized.description,
+      effects: item.localized.effects,
+      sideEffects: item.localized.sideEffects,
+      goodFor: item.localized.goodFor,
+      tags: item.tags,
+      images: item.images,
+      updatedAt: item.updatedAt,
+    }));
 
-    await buildBundle();
-
-    return NextResponse.json({ success: true, product });
+    return NextResponse.json({ items: responseItems, nextCursor });
   } catch (error) {
-    if (error instanceof ZodError) {
-      return NextResponse.json({ success: false, issues: error.issues }, { status: 400 });
-    }
-    console.error("/api/products POST error", error);
-    return NextResponse.json({ success: false, error: "Unable to save product." }, { status: 500 });
+    console.error("/api/products GET error", error);
+    const message = error instanceof Error ? error.message : "Unknown error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

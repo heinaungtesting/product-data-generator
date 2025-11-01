@@ -8,6 +8,7 @@ const LANGUAGE_LABELS: Record<(typeof LANGUAGES)[number], string> = {
   en: "English",
   th: "Thai",
   ko: "Korean",
+  zh: "Chinese",
 };
 
 const FIELD_GROUPS: Array<{
@@ -89,9 +90,15 @@ export function ProductForm({
         <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
           {mode === "create" ? "Add Product" : "Edit Product"}
         </h2>
-        <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
-          ID: {product.id}
-        </span>
+        {mode === "edit" ? (
+          <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+            ID: {product.id}
+          </span>
+        ) : (
+          <span className="text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-slate-500">
+            New product
+          </span>
+        )}
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
@@ -208,7 +215,7 @@ export function ProductForm({
                         id={inputId}
                         type="text"
                         aria-invalid={Boolean(fieldError)}
-                        className={`min-h-[44px] rounded-lg border px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-0 dark:bg-slate-900 dark:text-slate-100 ${
+                        className={`min-h-11 rounded-lg border px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-0 dark:bg-slate-900 dark:text-slate-100 ${
                           fieldError
                             ? "border-red-400 dark:border-red-500"
                             : "border-slate-200 dark:border-slate-700"
