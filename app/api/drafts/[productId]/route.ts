@@ -29,7 +29,7 @@ export async function PUT(request: NextRequest, context: DraftRouteContext) {
 
   try {
     const body = await request.json();
-    const blob = body as Prisma.InputJsonValue;
+    const blob = body as any;
     const now = new Date();
 
     await prisma.draft.upsert({

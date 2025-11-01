@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { buildBundle, normalizeProductInput, saveProduct } from "@/lib/product-service";
 import { ZodError } from "zod";
+import type { Product } from "@pdg/schema";
 
 type ImportError = {
   line: number;
@@ -23,7 +24,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: "No data provided." }, { status: 400 });
     }
 
-    const products = [];
+    const products: Product[] = [];
     const errors: ImportError[] = [];
 
     lines.forEach((line, index) => {
@@ -52,7 +53,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, imported: 0, errors }, { status: 400 });
     }
 
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: any) => {
       for (const product of products) {
         await saveProduct(product, tx);
         await tx.draft.delete({ where: { productId: product.id } }).catch(() => undefined);

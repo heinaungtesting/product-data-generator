@@ -8,7 +8,7 @@ export type ResolvedImage = {
   filename: string;
 };
 
-const DATA_URI_REGEX = /^data:(?<mime>[^;]+);base64,(?<data>.+)$/u;
+const DATA_URI_REGEX = /^data:([^;]+);base64,(.+)$/u;
 
 const MIME_EXTENSION_MAP: Record<string, string> = {
   "image/jpeg": "jpg",
@@ -30,11 +30,11 @@ const guessExtension = (mime: string, fallback?: string) => {
 
 const parseDataUri = (source: string): ResolvedImage => {
   const match = DATA_URI_REGEX.exec(source);
-  if (!match?.groups?.mime || !match?.groups?.data) {
+  if (!match || !match[1] || !match[2]) {
     throw new Error("Invalid data URI");
   }
-  const contentType = match.groups.mime;
-  const binary = Buffer.from(match.groups.data, "base64");
+  const contentType = match[1];
+  const binary = Buffer.from(match[2], "base64");
   const bytes = new Uint8Array(binary.buffer, binary.byteOffset, binary.byteLength);
   const hash = computeSha256(bytes);
   const extension = guessExtension(contentType);

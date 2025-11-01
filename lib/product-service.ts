@@ -2,15 +2,7 @@ import { createHash } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { gzipSync } from "node:zlib";
-import type {
-  Draft,
-  Prisma,
-  Product as PrismaProduct,
-  ProductCategory,
-  ProductText,
-  ProductTag,
-  Tag,
-} from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "./prisma";
 import {
   bundlePayloadSchema,
@@ -127,10 +119,31 @@ export const normalizeProductInput = (raw: unknown): Product => {
     tags: normalizeTags(parsed.tags),
   };
 };
-
-type ProductRecord = PrismaProduct & {
-  texts: ProductText[];
-  tags: Array<ProductTag & { tag: Tag }>;
+type ProductRecord = {
+  id: string;
+  category: string;
+  pointValue: number;
+  contentUpdatedAt: Date;
+  createdAt: Date;
+  updatedAt: Date;
+  texts: Array<{
+    id: number;
+    productId: string;
+    language: string;
+    name: string;
+    description: string;
+    effects: string;
+    sideEffects: string;
+    goodFor: string;
+  }>;
+  tags: Array<{
+    productId: string;
+    tagId: number;
+    tag: {
+      id: number;
+      name: string;
+    };
+  }>;
 };
 
 const mapProductRecord = (record: ProductRecord): Product => {
@@ -142,7 +155,7 @@ const mapProductRecord = (record: ProductRecord): Product => {
     {} as Record<(typeof LOCALIZABLE_FIELDS)[number], Record<LanguageCode, string>>,
   );
 
-  record.texts.forEach((text) => {
+  record.texts.forEach((text: any) => {
     const lang = text.language as LanguageCode;
     localized.name[lang] = text.name;
     localized.description[lang] = text.description;
@@ -151,12 +164,12 @@ const mapProductRecord = (record: ProductRecord): Product => {
     localized.goodFor[lang] = text.goodFor;
   });
 
-  const tags = record.tags.map((entry) => entry.tag.name);
+  const tags = record.tags.map((entry: any) => entry.tag.name);
 
   return productSchema.parse(
     fillPlaceholders({
       id: record.id,
-      category: record.category,
+      category: record.category as "health" | "cosmetic",
       pointValue: record.pointValue,
       tags,
       name: localized.name,
@@ -274,7 +287,7 @@ export const listProducts = async (
 ) => {
   const { search, categories, tags } = options;
 
-  const where: Prisma.ProductWhereInput = {};
+  const where: any = {};
 
   if (search && search.trim().length > 0) {
     where.texts = {
@@ -291,7 +304,7 @@ export const listProducts = async (
   }
 
   const categoryFilters = (categories ?? []).filter(
-    (category): category is ProductCategory => category === "health" || category === "cosmetic",
+    (category): category is "health" | "cosmetic" => category === "health" || category === "cosmetic",
   );
   if (categoryFilters.length > 0) {
     where.category = { in: categoryFilters };
@@ -371,15 +384,15 @@ export const getLatestBundle = async () => {
   return bundle;
 };
 
-export const loadDraft = async (productId: string): Promise<Draft | null> => {
+export const loadDraft = async (productId: string): Promise<any | null> => {
   return prisma.draft.findUnique({ where: { productId } });
 };
 
 export const saveDraft = async (productId: string, blob: unknown) => {
   await prisma.draft.upsert({
     where: { productId },
-    create: { productId, blob: blob as Prisma.JsonValue, updatedAt: new Date() },
-    update: { blob: blob as Prisma.JsonValue, updatedAt: new Date() },
+    create: { productId, blob: blob as any, updatedAt: new Date() },
+    update: { blob: blob as any, updatedAt: new Date() },
   });
 };
 
@@ -389,7 +402,7 @@ export const deleteDraft = async (productId: string) => {
 
 export const listTags = async () => {
   const tags = await prisma.tag.findMany({ orderBy: { name: "asc" } });
-  return tags.map((tag) => tag.name);
+  return tags.map((tag: any) => tag.name);
 };
 
 export const getProductCount = async () => {
