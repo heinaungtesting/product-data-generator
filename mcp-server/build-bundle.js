@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * Bundle Builder - Reads NDJSON data and creates gzipped bundle
  */
@@ -139,28 +140,57 @@ export async function publishToGitHub(bundle) {
     });
   }
 
+  // Helper to fetch existing file SHA (if present)
+  const getFileSha = async (filePath) => {
+    try {
+      const { data } = await octokit.repos.getContent({
+        owner,
+        repo,
+        path: filePath,
+        ref: 'gh-pages',
+      });
+
+      if (Array.isArray(data)) {
+        return null;
+      }
+
+      return data.sha ?? null;
+    } catch (error) {
+      if (error.status === 404) {
+        return null;
+      }
+      throw error;
+    }
+  };
+
   // Upload files to gh-pages
   const bundlePath = 'bundle.json.gz';
   const etagPath = 'etag.txt';
 
-  await Promise.all([
-    octokit.repos.createOrUpdateFileContents({
+  const updateFile = async (filePath, content, message) => {
+    const existingSha = await getFileSha(filePath);
+    await octokit.repos.createOrUpdateFileContents({
       owner,
       repo,
-      path: bundlePath,
-      message: `Update bundle: ${bundle.etag.substring(0, 8)}`,
-      content: bundleContent.toString('base64'),
+      path: filePath,
+      message,
+      content,
       branch: 'gh-pages',
-    }),
-    octokit.repos.createOrUpdateFileContents({
-      owner,
-      repo,
-      path: etagPath,
-      message: `Update etag: ${bundle.etag.substring(0, 8)}`,
-      content: Buffer.from(etagContent).toString('base64'),
-      branch: 'gh-pages',
-    }),
-  ]);
+      ...(existingSha ? { sha: existingSha } : {}),
+    });
+  };
+
+  await updateFile(
+    bundlePath,
+    bundleContent.toString('base64'),
+    `Update bundle: ${bundle.etag.substring(0, 8)}`
+  );
+
+  await updateFile(
+    etagPath,
+    Buffer.from(etagContent).toString('base64'),
+    `Update etag: ${bundle.etag.substring(0, 8)}`
+  );
 
   const url = `https://${owner}.github.io/${repo}/${bundlePath}`;
 

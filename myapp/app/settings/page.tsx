@@ -72,7 +72,7 @@ export default function SettingsPage() {
                   <button
                     key={themeOption}
                     onClick={() => setTheme(themeOption)}
-                    className={`flex-1 py-2 px-4 rounded-lg font-medium min-h-[44px] ${
+                    className={`flex-1 py-2 px-4 rounded-lg font-medium min-h-11 ${
                       theme === themeOption
                         ? 'bg-accent text-white'
                         : 'bg-fg/5 text-fg hover:bg-fg/10'
@@ -107,7 +107,7 @@ export default function SettingsPage() {
                       setBundleUrl(urlInput);
                       setShowUrlEdit(false);
                     }}
-                    className="px-4 py-2 bg-accent text-white rounded-lg min-h-[44px]"
+                    className="px-4 py-2 bg-accent text-white rounded-lg min-h-11"
                   >
                     {t('save')}
                   </button>
@@ -149,12 +149,12 @@ export default function SettingsPage() {
           <div className="space-y-2">
             <button
               onClick={handleExport}
-              className="w-full py-3 px-4 bg-accent text-white rounded-lg font-medium min-h-[44px]"
+              className="w-full py-3 px-4 bg-accent text-white rounded-lg font-medium min-h-11"
             >
               {t('exportData')}
             </button>
 
-            <label className="block w-full py-3 px-4 bg-fg/10 text-fg rounded-lg font-medium text-center cursor-pointer hover:bg-fg/20 min-h-[44px]">
+            <label className="block w-full py-3 px-4 bg-fg/10 text-fg rounded-lg font-medium text-center cursor-pointer hover:bg-fg/20 min-h-11">
               {t('importData')}
               <input
                 type="file"
@@ -166,7 +166,7 @@ export default function SettingsPage() {
 
             <button
               onClick={handleClearData}
-              className="w-full py-3 px-4 bg-danger text-white rounded-lg font-medium min-h-[44px]"
+              className="w-full py-3 px-4 bg-danger text-white rounded-lg font-medium min-h-11"
             >
               {t('clearData')}
             </button>

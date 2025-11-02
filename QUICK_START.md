@@ -65,7 +65,7 @@ cd myapp
 npm install
 
 # Create env file
-echo 'NEXT_PUBLIC_BUNDLE_URL=https://yourusername.github.io/product-data-generator/bundle.json.gz' > .env.local
+echo 'NEXT_PUBLIC_BUNDLE_URL=https://heinaungtesting.github.io/product-data-generator/bundle.json.gz' > .env.local
 
 # Deploy MyApp
 vercel --prod
