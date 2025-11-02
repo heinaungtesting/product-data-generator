@@ -61,7 +61,14 @@ npm start
 
 ## Deployment Options
 
+> **⚠️ IMPORTANT FOR VERCEL USERS**
+> If deploying via Vercel Dashboard (not CLI), you MUST set **Root Directory** to `myapp` in project settings.
+> Without this, you'll get: `Cannot find module '@/lib/hooks'` error.
+> See [VERCEL_DEPLOYMENT.md](./VERCEL_DEPLOYMENT.md) for detailed instructions.
+
 ### Option A: Vercel (Recommended)
+
+**Method 1: Via CLI (Easiest - Auto-configures root directory)**
 
 1. Install Vercel CLI:
    ```bash
@@ -86,6 +93,15 @@ npm start
    ```bash
    vercel --prod
    ```
+
+**Method 2: Via Dashboard (Manual root directory configuration required)**
+
+1. Import repository at [vercel.com/new](https://vercel.com/new)
+2. **⚠️ CRITICAL:** Set Root Directory to `myapp`
+3. Add environment variable: `NEXT_PUBLIC_BUNDLE_URL`
+4. Deploy
+
+See [VERCEL_DEPLOYMENT.md](./VERCEL_DEPLOYMENT.md) for detailed steps with screenshots.
 
 **Free tier**: 100GB bandwidth, unlimited requests
 
