@@ -1,0 +1,10 @@
+{
+  "schemaVersion": "1.0.0",
+  "dataVersion": "2025-01-05",
+  "description": "Sample product data for Product Data Generator",
+  "categories": ["health", "cosmetic"],
+  "languages": ["en", "ja", "th", "ko", "zh"],
+  "totalProducts": 5,
+  "lastUpdated": "2025-01-05T00:00:00Z",
+  "notes": "This is sample data to demonstrate PDG and MyApp functionality. Replace with your own product data."
+}
