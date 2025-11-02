@@ -1,0 +1,19 @@
+{
+  "name": "@pdg/mcp-server",
+  "version": "1.0.0",
+  "description": "Claude MCP Server for PDG Bundle Generation",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "build-bundle": "node build-bundle.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "zod": "^4.1.12",
+    "pako": "^2.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22"
+  }
+}
