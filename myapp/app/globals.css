@@ -3,30 +3,27 @@
 @tailwind utilities;
 
 :root {
-  --bg: #ffffff;
-  --fg: #0a0a0a;
-  --accent: #2563eb;
-  --danger: #ef4444;
+  --color-bg: #ffffff;
+  --color-fg: #0a0a0a;
+  --color-accent: #2563eb;
+  --color-danger: #ef4444;
 }
 
 .dark {
-  --bg: #0a0a0a;
-  --fg: #fafafa;
-  --accent: #3b82f6;
-  --danger: #f87171;
+  --color-bg: #0a0a0a;
+  --color-fg: #fafafa;
+  --color-accent: #3b82f6;
+  --color-danger: #f87171;
 }
 
 @layer base {
   body {
-    @apply bg-bg text-fg;
+    background-color: var(--color-bg);
+    color: var(--color-fg);
     font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overscroll-behavior: none;
-  }
-
-  * {
-    @apply border-border;
   }
 }
 
@@ -44,39 +41,39 @@
   }
 
   .text-bg {
-    color: var(--bg);
+    color: var(--color-bg);
   }
 
   .text-fg {
-    color: var(--fg);
+    color: var(--color-fg);
   }
 
   .text-accent {
-    color: var(--accent);
+    color: var(--color-accent);
   }
 
   .text-danger {
-    color: var(--danger);
+    color: var(--color-danger);
   }
 
   .bg-bg {
-    background-color: var(--bg);
+    background-color: var(--color-bg);
   }
 
   .bg-fg {
-    background-color: var(--fg);
+    background-color: var(--color-fg);
   }
 
   .bg-accent {
-    background-color: var(--accent);
+    background-color: var(--color-accent);
   }
 
   .bg-danger {
-    background-color: var(--danger);
+    background-color: var(--color-danger);
   }
 
   .border-fg {
-    border-color: var(--fg);
+    border-color: var(--color-fg);
   }
 }
 

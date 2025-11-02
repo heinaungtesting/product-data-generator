@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useAppStore } from '@/lib/store';
 import LanguageToggle from './LanguageToggle';
 import SearchBar from './SearchBar';
 

@@ -16,10 +16,16 @@ export interface SyncResult {
   etag?: string;
 }
 
+interface BundleData {
+  products: Product[];
+  schemaVersion?: string;
+  [key: string]: unknown;
+}
+
 /**
  * Fetch and decompress the bundle
  */
-async function fetchBundle(url: string, etag?: string): Promise<{ data: any; newEtag?: string; notModified: boolean }> {
+async function fetchBundle(url: string, etag?: string): Promise<{ data: BundleData | null; newEtag?: string; notModified: boolean }> {
   const headers: HeadersInit = {};
   if (etag) {
     headers['If-None-Match'] = etag;

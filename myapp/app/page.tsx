@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
+import { useState, useCallback } from 'react';
+import { useLiveQuery } from '@/lib/hooks';
 import { Virtuoso } from 'react-virtuoso';
 import { useTranslation } from 'react-i18next';
 import AppShell from '@/components/AppShell';
@@ -23,13 +23,11 @@ export default function HomePage() {
         return searchProducts(searchQuery, useAppStore.getState().language);
       }
 
-      let query = db.products.orderBy('updatedAt').reverse();
-
       if (categoryFilter !== 'all') {
-        return query.filter(p => p.category === categoryFilter).toArray();
+        return db.products.orderBy('updatedAt').reverse().filter(p => p.category === categoryFilter).toArray();
       }
 
-      return query.toArray();
+      return db.products.orderBy('updatedAt').reverse().toArray();
     },
     [searchQuery, categoryFilter]
   );
@@ -71,10 +69,10 @@ export default function HomePage() {
 
         {/* Category Filter */}
         <div className="flex gap-2 p-4 border-b border-fg/10 overflow-x-auto">
-          {['all', 'health', 'cosmetic'].map((cat) => (
+          {(['all', 'health', 'cosmetic'] as const).map((cat) => (
             <button
               key={cat}
-              onClick={() => setCategoryFilter(cat as any)}
+              onClick={() => setCategoryFilter(cat)}
               className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap min-h-[44px] ${
                 categoryFilter === cat
                   ? 'bg-accent text-white'

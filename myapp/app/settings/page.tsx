@@ -2,10 +2,10 @@
 
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useLiveQuery } from 'dexie-react-hooks';
+import { useLiveQuery } from '@/lib/hooks';
 import AppShell from '@/components/AppShell';
 import { useAppStore, type Theme } from '@/lib/store';
-import { db, getMeta } from '@/lib/db';
+import { db } from '@/lib/db';
 import { getSyncStatus } from '@/lib/sync';
 
 export default function SettingsPage() {
