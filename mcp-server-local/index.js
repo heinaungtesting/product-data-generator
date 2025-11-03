@@ -7,13 +7,45 @@ import { PrismaClient } from '../node_modules/@prisma/client/index.js';
 import { execSync } from 'child_process';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import fs from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Get PDG project path from environment or use parent directory
 const PDG_PATH = process.env.PDG_PATH || path.resolve(__dirname, '..');
-const DATABASE_URL = process.env.DATABASE_URL || `file:${path.join(PDG_PATH, 'prisma', 'dev.db')}`;
+
+function resolveDatabaseUrl() {
+  const directPath = path.join(PDG_PATH, 'prisma', 'dev.db');
+  const nestedPath = path.join(PDG_PATH, 'prisma', 'prisma', 'dev.db');
+
+  const candidates = [
+    process.env.DATABASE_URL,
+    `file:${nestedPath}`,
+    `file:${directPath}`
+  ].filter(Boolean);
+
+  for (const candidate of candidates) {
+    if (!candidate.startsWith('file:')) {
+      return candidate;
+    }
+
+    const filePath = candidate.replace(/^file:/, '');
+    try {
+      fs.mkdirSync(path.dirname(filePath), { recursive: true });
+      const fd = fs.openSync(filePath, 'a'); // ensure file exists
+      fs.closeSync(fd);
+      fs.accessSync(filePath, fs.constants.R_OK | fs.constants.W_OK);
+      return `file:${filePath}`;
+    } catch (error) {
+      console.warn(`Skipping database candidate ${filePath}: ${error.message}`);
+    }
+  }
+
+  throw new Error('Unable to locate a writable SQLite database. Set DATABASE_URL to a writable path.');
+}
+
+const DATABASE_URL = resolveDatabaseUrl();
 
 // Initialize Prisma Client
 const prisma = new PrismaClient({
