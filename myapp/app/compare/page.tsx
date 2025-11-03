@@ -117,7 +117,7 @@ export default function ComparePage() {
               </thead>
               <tbody>
                 {rows.map((row) => (
-                  <tr key={row.field}>
+                  <tr key={row.label}>
                     <th className="sticky left-0 z-10 bg-bg px-4 py-3 align-top text-xs font-semibold uppercase tracking-wide text-fg/50">
                       {row.label}
                     </th>
