@@ -16,8 +16,25 @@ export interface SyncResult {
   etag?: string;
 }
 
+interface BundleProduct {
+  id: string;
+  category: 'health' | 'cosmetic';
+  pointValue: number;
+  texts: Array<{
+    language: string;
+    name: string;
+    description: string;
+    effects: string;
+    sideEffects: string;
+    goodFor: string;
+  }>;
+  tags: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 interface BundleData {
-  products: Product[];
+  products: BundleProduct[];
   schemaVersion?: string;
   [key: string]: unknown;
 }
@@ -75,7 +92,36 @@ export async function syncNow(): Promise<SyncResult> {
       throw new Error('Invalid bundle structure');
     }
 
-    const products = data.products as Product[];
+    // Transform bundle products to MyApp format
+    const products: Product[] = data.products.map(bundleProduct => {
+      // Convert texts array to language-keyed objects
+      const name: Record<string, string> = {};
+      const description: Record<string, string> = {};
+      const effects: Record<string, string> = {};
+      const sideEffects: Record<string, string> = {};
+      const goodFor: Record<string, string> = {};
+
+      bundleProduct.texts.forEach(text => {
+        name[text.language] = text.name;
+        description[text.language] = text.description;
+        effects[text.language] = text.effects;
+        sideEffects[text.language] = text.sideEffects;
+        goodFor[text.language] = text.goodFor;
+      });
+
+      return {
+        id: bundleProduct.id,
+        category: bundleProduct.category,
+        pointValue: bundleProduct.pointValue,
+        name,
+        description,
+        effects,
+        sideEffects,
+        goodFor,
+        tags: bundleProduct.tags,
+        updatedAt: bundleProduct.updatedAt,
+      };
+    });
 
     // Atomic replace - clear and insert in transaction
     await db.transaction('rw', db.products, async () => {
