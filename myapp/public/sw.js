@@ -115,8 +115,8 @@ self.addEventListener('push', (event) => {
   const title = data.title || 'MyApp Update';
   const options = {
     body: data.body || 'New products available',
-    icon: '/icon-192.png',
-    badge: '/icon-72.png',
+    icon: '/icon.svg',
+    badge: '/icon.svg',
     data: data,
   };
 
