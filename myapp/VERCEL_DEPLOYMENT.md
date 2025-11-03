@@ -97,6 +97,27 @@ git pull origin claude/optimize-local-privacy-app-011CUgaqpdEMSoo1wvoAJE2g
 2. GitHub Pages is enabled and bundle is published
 3. Bundle URL is accessible (try visiting it in browser)
 
+### 401 Unauthorized on manifest.json and other resources
+
+**Cause:** Vercel Preview Deployment Protection is enabled
+
+**Solution:**
+1. **Option A:** Disable preview protection
+   - Go to Vercel Dashboard → Settings → Deployment Protection
+   - Set "Preview Deployment Protection" to "Disabled"
+   - Save and redeploy
+
+2. **Option B:** Use production URL
+   - Deploy to production: `vercel --prod`
+   - Access your production URL (e.g., `myproductcatalog.vercel.app`)
+   - Production deployments don't have password protection by default
+
+3. **Option C:** Authenticate
+   - Enter the password shown in Vercel dashboard
+   - App will work after authentication
+
+**See:** `../VERCEL_401_FIX.md` for detailed steps
+
 ---
 
 ## 📋 Pre-Deployment Checklist
