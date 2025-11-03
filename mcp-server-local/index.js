@@ -35,15 +35,28 @@ function executeGitCommit(action, details = '') {
     // Change to PDG directory
     process.chdir(PDG_PATH);
 
-    // Check if there are changes
-    const status = execSync('git status --porcelain', { encoding: 'utf8' });
-    if (!status.trim()) {
-      console.log('No changes to commit');
+    // Check if database file has changes
+    const dbStatus = execSync('git status --porcelain prisma/dev.db', { encoding: 'utf8' });
+    if (!dbStatus.trim()) {
+      console.log('No changes to database file');
       return { success: true, message: 'No changes detected' };
     }
 
-    // Add database file
+    // Reset staging area to avoid accidentally committing other files
+    execSync('git reset', { encoding: 'utf8' });
+
+    // Add ONLY the database file
     execSync('git add prisma/dev.db', { encoding: 'utf8' });
+
+    // Verify what will be committed
+    const staged = execSync('git diff --cached --name-only', { encoding: 'utf8' });
+    console.log('Files to be committed:', staged.trim());
+
+    // Safety check: ensure only prisma/dev.db is staged
+    const stagedFiles = staged.trim().split('\n').filter(f => f);
+    if (stagedFiles.length !== 1 || stagedFiles[0] !== 'prisma/dev.db') {
+      throw new Error(`Unexpected files staged: ${stagedFiles.join(', ')}. Aborting commit.`);
+    }
 
     // Commit
     execSync(`git commit -m "${message}"`, { encoding: 'utf8' });
@@ -56,6 +69,12 @@ function executeGitCommit(action, details = '') {
     return { success: true, message: `Changes committed and pushed: ${message}` };
   } catch (error) {
     console.error('Git operation failed:', error.message);
+    // Reset staging area on error
+    try {
+      execSync('git reset', { encoding: 'utf8' });
+    } catch (e) {
+      // Ignore reset errors
+    }
     return { success: false, error: `Git operation failed: ${error.message}` };
   }
 }
