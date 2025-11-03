@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - 'data/**'
+      - 'prisma/dev.db'  # Trigger on database changes via MCP
   schedule:
     # Run nightly at 2 AM UTC
     - cron: '0 2 * * *'
@@ -31,6 +32,11 @@ jobs:
           cache: 'npm'
           cache-dependency-path: mcp-server/package-lock.json
 
+      - name: Generate Prisma Client
+        run: |
+          cd mcp-server
+          npx prisma generate --schema=../prisma/schema.prisma
+
       - name: Install MCP server dependencies
         run: |
           cd mcp-server
@@ -40,6 +46,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
+          DATABASE_URL: file:../prisma/dev.db
         run: |
           cd mcp-server
           npm run build-bundle

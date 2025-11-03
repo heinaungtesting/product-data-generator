@@ -1,0 +1,21 @@
+{
+  "name": "pdg-mcp-server",
+  "version": "1.0.0",
+  "description": "MCP server for Product Data Generator - Claude Desktop integration",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^0.5.0",
+    "@prisma/client": "^6.18.0"
+  },
+  "devDependencies": {
+    "prisma": "^6.18.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

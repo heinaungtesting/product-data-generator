@@ -156,6 +156,49 @@ Browse your catalog on-the-go, 100% offline, installable as a native app.
 
 ---
 
+
+---
+
+### 🤖 Claude MCP Integration (NEW!)
+
+**Manage products directly from Claude Desktop using natural language!**
+
+#### MCP Server Features
+- ✅ **Create Products** - "Create a health product called Vitamin C with 100 points"
+- ✅ **Update Products** - "Change the point value of product XYZ to 120"
+- ✅ **Delete Products** - "Delete product ABC"
+- ✅ **Search & List** - "Show me all vitamin products"
+- ✅ **Get Statistics** - "How many products do I have?"
+- ✅ **Auto-Commit** - Automatically commits and pushes changes to GitHub
+- ✅ **Auto-Deploy** - Triggers bundle regeneration and deployment
+
+#### Workflow
+
+```
+You → Claude Desktop → MCP Server → Database
+                                       ↓
+                              Auto-commit & push
+                                       ↓
+                              GitHub Actions
+                                       ↓
+                            Bundle Regeneration
+                                       ↓
+                              GitHub Pages
+                                       ↓
+                            MyApp Syncs (1-2 min)
+```
+
+#### Setup Time: 5 Minutes
+
+1. Install dependencies in `mcp-server-local/`
+2. Configure Claude Desktop config file
+3. Restart Claude Desktop
+4. Start creating products with natural language!
+
+**See [MCP_SETUP.md](./MCP_SETUP.md) for complete guide**
+
+---
+
 ## 🏗️ Architecture
 
 ```
