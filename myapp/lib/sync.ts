@@ -6,7 +6,7 @@
 import { db, setMeta, getMeta, type Product } from './db';
 import pako from 'pako';
 
-const DEFAULT_BUNDLE_URL = process.env.NEXT_PUBLIC_BUNDLE_URL || 'https://YOUR_USERNAME.github.io/product-data-generator/bundle.json.gz';
+const DEFAULT_BUNDLE_URL = process.env.NEXT_PUBLIC_BUNDLE_URL || '/api/bundle';
 
 export interface SyncResult {
   success: boolean;
