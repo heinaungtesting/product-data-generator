@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /**
- * Bundle Builder - Reads NDJSON data and creates gzipped bundle
+ * Bundle Builder - Reads from Prisma database and creates gzipped bundle
  */
 
 import fs from 'fs/promises';
@@ -8,31 +8,65 @@ import path from 'path';
 import crypto from 'crypto';
 import pako from 'pako';
 import { Octokit } from '@octokit/rest';
+import { PrismaClient } from '@prisma/client';
 
 const DATA_DIR = path.join(process.cwd(), 'data');
 const OUTPUT_DIR = path.join(process.cwd(), 'dist');
 
+// Initialize Prisma Client
+const prisma = new PrismaClient();
+
 /**
- * Read and parse NDJSON products file
+ * Read products from Prisma database
+ * Returns products in NDJSON-compatible format for MyApp
  */
 async function readProducts() {
-  const productsPath = path.join(DATA_DIR, 'products.ndjson');
-
   try {
-    const content = await fs.readFile(productsPath, 'utf-8');
-    const lines = content.trim().split('\n').filter(line => line.trim());
+    const products = await prisma.product.findMany({
+      include: {
+        texts: true,
+        tags: {
+          include: {
+            tag: true
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
 
-    return lines.map(line => {
-      try {
-        return JSON.parse(line);
-      } catch (error) {
-        console.error(`Failed to parse line: ${line.substring(0, 50)}...`);
-        return null;
-      }
-    }).filter(Boolean);
+    // Transform to NDJSON-compatible format
+    return products.map(product => {
+      // Group texts by language
+      const texts = {};
+      product.texts.forEach(text => {
+        texts[text.language] = {
+          language: text.language,
+          name: text.name,
+          description: text.description,
+          effects: text.effects,
+          sideEffects: text.sideEffects,
+          goodFor: text.goodFor
+        };
+      });
+
+      // Extract tag names
+      const tags = product.tags.map(pt => pt.tag.name);
+
+      return {
+        id: product.id,
+        category: product.category,
+        pointValue: product.pointValue,
+        texts: Object.values(texts),
+        tags,
+        createdAt: product.createdAt.toISOString(),
+        updatedAt: product.updatedAt.toISOString()
+      };
+    });
   } catch (error) {
-    console.error('Failed to read products:', error);
+    console.error('Failed to read products from database:', error);
     return [];
+  } finally {
+    await prisma.$disconnect();
   }
 }
 

@@ -6,11 +6,13 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "build-bundle": "node build-bundle.js"
+    "build-bundle": "node build-bundle-direct.js"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
     "@octokit/rest": "^22.0.1",
+    "@prisma/client": "^6.18.0",
+    "better-sqlite3": "^11.5.0",
     "pako": "^2.1.0",
     "zod": "^4.1.12"
   },

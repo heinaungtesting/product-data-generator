@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - 'data/**'
+      - 'prisma/dev.db'  # Trigger on database changes via MCP
   schedule:
     # Run nightly at 2 AM UTC
     - cron: '0 2 * * *'
@@ -40,6 +41,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
+          DATABASE_URL: file:../prisma/dev.db
         run: |
           cd mcp-server
           npm run build-bundle
