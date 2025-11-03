@@ -1,0 +1,6 @@
+<svg width="400" height="400" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="400" fill="#dbeafe"/>
+  <circle cx="200" cy="160" r="60" fill="#3b82f6"/>
+  <rect x="140" y="240" width="120" height="80" rx="10" fill="#3b82f6"/>
+  <text x="50%" y="90%" dominant-baseline="middle" text-anchor="middle" font-family="system-ui, sans-serif" font-size="18" fill="#1e40af">Sample Product</text>
+</svg>

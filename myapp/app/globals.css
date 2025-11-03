@@ -2,6 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
+@import './animations.css';
+
 :root {
   --color-bg: #ffffff;
   --color-fg: #0a0a0a;
