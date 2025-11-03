@@ -25,7 +25,7 @@ export async function GET() {
       status: 200,
       headers: {
         'Content-Type': 'application/gzip',
-        'Content-Encoding': 'gzip',
+        // Don't set Content-Encoding - let client decompress
         'Cache-Control': 'public, max-age=300, s-maxage=600',
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, OPTIONS',
