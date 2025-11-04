@@ -3,30 +3,28 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useLiveQuery } from '@/lib/hooks';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
 import AppShell from '@/components/AppShell';
 import CompareDrawer from '@/components/CompareDrawer';
-import { db, searchProducts, type Product } from '@/lib/db';
+import { db, type Product } from '@/lib/db';
 import { useAppStore } from '@/lib/store';
 import { syncNow } from '@/lib/sync';
+
+// Initialize compare IDs from sessionStorage
+function getInitialCompareIds(): string[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const saved = sessionStorage.getItem('compare');
+    return saved ? JSON.parse(saved) : [];
+  } catch {
+    return [];
+  }
+}
 
 export default function HomePage() {
   const router = useRouter();
   const { isSyncing, setIsSyncing, setLastSyncTime, language } = useAppStore();
   const [localSearch, setLocalSearch] = useState('');
-  const [compareIds, setCompareIds] = useState<string[]>([]);
-
-  // Load compare from sessionStorage on mount
-  useEffect(() => {
-    const saved = sessionStorage.getItem('compare');
-    if (saved) {
-      try {
-        setCompareIds(JSON.parse(saved));
-      } catch (e) {
-        // ignore
-      }
-    }
-  }, []);
+  const [compareIds, setCompareIds] = useState<string[]>(getInitialCompareIds);
 
   // Save compare to sessionStorage
   useEffect(() => {
