@@ -21,7 +21,7 @@ A mobile-first, offline-capable PWA companion app for Product Data Generator (PD
 - **i18n**: i18next with 5 languages
 - **Virtualization**: react-virtuoso for performance
 - **Offline**: Service Worker with Workbox patterns
-- **Bundle**: Gzipped JSON from GitHub Pages
+- **Bundle**: JSON bundle served from GitHub Pages or the built-in default
 
 ## Quick Start
 
@@ -37,8 +37,9 @@ npm install
 Create `myapp/.env.local`:
 
 ```env
-# Bundle URL from GitHub Pages (after deployment)
-NEXT_PUBLIC_BUNDLE_URL=https://yourusername.github.io/product-data-generator/bundle.json.gz
+# Local default keeps MyApp working immediately
+NEXT_PUBLIC_BUNDLE_URL=/default-bundle.json
+# Replace with your hosted bundle URL (GitHub Pages, S3, etc.) when ready
 
 # Optional: Analytics, monitoring, etc.
 # (None required - fully free!)
