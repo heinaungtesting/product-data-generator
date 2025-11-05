@@ -1,15 +1,24 @@
 'use client';
 
+import Image from 'next/image';
 import { useState, useCallback, useMemo, useEffect } from 'react';
-import { useLiveQuery } from '@/lib/hooks';
 import { useRouter } from 'next/navigation';
+import { useTranslation } from 'react-i18next';
 import AppShell from '@/components/AppShell';
 import CompareDrawer from '@/components/CompareDrawer';
+import { useLiveQuery } from '@/lib/hooks';
 import { db, type Product } from '@/lib/db';
-import { useAppStore } from '@/lib/store';
+import { useAppStore, type Language } from '@/lib/store';
 import { syncNow } from '@/lib/sync';
 
-// Initialize compare IDs from sessionStorage
+const languageOptions: { code: Language; label: string }[] = [
+  { code: 'ja', label: '日本語' },
+  { code: 'en', label: 'English' },
+  { code: 'zh', label: '中文' },
+  { code: 'th', label: 'ไทย' },
+  { code: 'ko', label: '한국어' },
+];
+
 function getInitialCompareIds(): string[] {
   if (typeof window === 'undefined') return [];
   try {
@@ -22,60 +31,73 @@ function getInitialCompareIds(): string[] {
 
 export default function HomePage() {
   const router = useRouter();
-  const { isSyncing, setIsSyncing, setLastSyncTime, language } = useAppStore();
-  const [localSearch, setLocalSearch] = useState('');
+  const { t, i18n } = useTranslation();
+  const {
+    isSyncing,
+    setIsSyncing,
+    setLastSyncTime,
+    lastSyncTime,
+    language,
+    setLanguage,
+  } = useAppStore();
+
+  const [searchInput, setSearchInput] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [compareIds, setCompareIds] = useState<string[]>(getInitialCompareIds);
 
-  // Save compare to sessionStorage
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      setSearchQuery(searchInput.trim());
+    }, 250);
+    return () => window.clearTimeout(timeout);
+  }, [searchInput]);
+
   useEffect(() => {
     sessionStorage.setItem('compare', JSON.stringify(compareIds));
   }, [compareIds]);
 
-  // Live query products from DB
   const dbProducts = useLiveQuery(
-    async () => {
-      return db.products.orderBy('updatedAt').reverse().toArray();
-    },
+    async () => db.products.orderBy('updatedAt').reverse().toArray(),
     []
   );
 
-  // Filter products by search
   const products = useMemo(() => {
     if (!dbProducts) return null;
+    if (!searchQuery) return dbProducts;
 
-    let items = dbProducts;
+    const lower = searchQuery.toLowerCase();
+    return dbProducts.filter((product) =>
+      product.name[language]?.toLowerCase().includes(lower) ||
+      product.description[language]?.toLowerCase().includes(lower)
+    );
+  }, [dbProducts, language, searchQuery]);
 
-    if (localSearch.trim()) {
-      const query = localSearch.toLowerCase();
-      items = items.filter(p =>
-        p.name[language]?.toLowerCase().includes(query) ||
-        p.description[language]?.toLowerCase().includes(query)
-      );
-    }
-
-    return items;
-  }, [dbProducts, language, localSearch]);
+  const totalProducts = dbProducts?.length ?? 0;
 
   const handleSync = useCallback(async () => {
     setIsSyncing(true);
-    const result = await syncNow();
-    if (result.success) {
-      setLastSyncTime(new Date().toISOString());
+    try {
+      const result = await syncNow();
+      if (result.success) {
+        setLastSyncTime(new Date().toISOString());
+      }
+    } finally {
+      setIsSyncing(false);
     }
-    setIsSyncing(false);
   }, [setIsSyncing, setLastSyncTime]);
 
-  const handleSearchChange = useCallback((query: string) => {
-    setTimeout(() => setLocalSearch(query), 250);
-  }, []);
+  const handleLanguageChange = (code: Language) => {
+    setLanguage(code);
+    i18n.changeLanguage(code);
+  };
 
   const toggleCompare = useCallback((id: string) => {
-    setCompareIds(prev => {
+    setCompareIds((prev) => {
       if (prev.includes(id)) {
-        return prev.filter(i => i !== id);
+        return prev.filter((item) => item !== id);
       }
       if (prev.length >= 2) {
-        return prev; // Max 2 items
+        return prev;
       }
       return [...prev, id];
     });
@@ -87,142 +109,203 @@ export default function HomePage() {
 
   const compareProducts = useMemo(() => {
     if (!dbProducts) return [];
-    return compareIds.map(id => dbProducts.find(p => p.id === id)).filter(Boolean) as Product[];
+    return compareIds
+      .map((id) => dbProducts.find((product) => product.id === id))
+      .filter(Boolean) as Product[];
   }, [compareIds, dbProducts]);
+
+  const lastSyncLabel = lastSyncTime
+    ? new Date(lastSyncTime).toLocaleString()
+    : t('sync') + ' not run';
 
   return (
     <AppShell>
-      <div className="h-full flex flex-col">
-        {/* Top Bar */}
-        <div className="border-b border-gray-200 bg-white">
-          {/* Search */}
-          <div className="p-4">
-            <input
-              type="search"
-              placeholder="Search products..."
-              onChange={(e) => handleSearchChange(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl bg-gray-50 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-600 transition-shadow"
-            />
+      <div className="relative space-y-6">
+        <section className="rounded-[32px] border border-white/70 bg-white/80 p-6 shadow-2xl shadow-indigo-100 backdrop-blur">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-center">
+            <div className="flex-1 space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-indigo-500">
+                {t('products')}
+              </p>
+              <h1 className="text-3xl font-semibold text-slate-900 sm:text-4xl">
+                Product intelligence at a glance
+              </h1>
+              <p className="text-slate-500">
+                Search, filter, and keep your offline catalog in sync with a single tap. Designed for fast on-the-go workflows.
+              </p>
+            </div>
+
+            <div className="w-full space-y-4 lg:max-w-md">
+              <label className="flex flex-col gap-2">
+                <span className="text-xs font-semibold text-slate-500">Search</span>
+                <div className="flex h-14 items-center gap-3 rounded-2xl border border-indigo-100 bg-white px-4 shadow-inner shadow-indigo-100/70">
+                  <svg className="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  <input
+                    type="search"
+                    value={searchInput}
+                    onChange={(e) => setSearchInput(e.target.value)}
+                    placeholder="Find supplements, cosmetics, ingredients..."
+                    className="flex-1 border-none bg-transparent text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none"
+                  />
+                </div>
+              </label>
+
+              <div className="flex flex-wrap gap-2">
+                {languageOptions.map((item) => (
+                  <button
+                    key={item.code}
+                    onClick={() => handleLanguageChange(item.code)}
+                    className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+                      language === item.code
+                        ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/40'
+                        : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+
+              <button
+                onClick={handleSync}
+                disabled={isSyncing}
+                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-indigo-600 via-violet-600 to-sky-500 px-6 py-4 text-white shadow-xl shadow-indigo-500/40 transition active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isSyncing ? 'Syncing data…' : 'Sync latest bundle'}
+                <span aria-hidden className="text-xl">↻</span>
+              </button>
+
+              <p className="text-xs text-slate-500">
+                Last synced: <span className="font-medium text-slate-700">{lastSyncLabel}</span>
+              </p>
+            </div>
           </div>
 
-          {/* Language Toggle */}
-          <div className="flex gap-2 px-4 pb-4 overflow-x-auto">
-            {(['ja', 'en', 'zh', 'th', 'ko'] as const).map((lang) => (
-              <button
-                key={lang}
-                onClick={() => {
-                  useAppStore.setState({ language: lang });
-                  localStorage.setItem('ui.lang', lang);
-                }}
-                className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all min-w-[44px] min-h-[44px] flex items-center justify-center ${
-                  language === lang
-                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-                aria-label={`Switch to ${lang.toUpperCase()}`}
+          <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              { label: 'Products', value: totalProducts, hint: 'Synced locally' },
+              { label: 'Selected', value: compareIds.length, hint: 'Compare slots used' },
+              { label: 'Languages', value: languageOptions.length, hint: 'Supported locales' },
+              { label: 'Search hits', value: products?.length ?? 0, hint: 'Matching records' },
+            ].map((stat) => (
+              <div
+                key={stat.label}
+                className="rounded-3xl border border-white/70 bg-white/90 p-4 shadow-lg shadow-slate-900/5"
               >
-                {lang.toUpperCase()}
-              </button>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{stat.label}</p>
+                <p className="mt-2 text-3xl font-semibold text-slate-900">{stat.value}</p>
+                <p className="text-xs text-slate-500">{stat.hint}</p>
+              </div>
             ))}
           </div>
+        </section>
 
-          {/* Sync Button */}
-          <div className="px-4 pb-4">
-            <button
-              onClick={handleSync}
-              disabled={isSyncing}
-              className="w-full px-4 py-3 bg-blue-600 text-white rounded-xl font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:bg-blue-700 active:scale-[0.98] min-h-[44px] shadow-lg shadow-blue-600/20"
-            >
-              {isSyncing ? 'Syncing...' : 'Sync Now'}
-            </button>
-          </div>
-        </div>
-
-        {/* Product Grid */}
-        <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
+        <section>
           {!products ? (
-            // Loading skeletons
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="bg-white rounded-xl overflow-hidden shadow-sm">
-                  <div className="aspect-square bg-gray-200 animate-pulse" />
-                  <div className="p-4 space-y-3">
-                    <div className="h-5 bg-gray-200 rounded animate-pulse" />
-                    <div className="h-10 bg-gray-200 rounded animate-pulse" />
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {Array.from({ length: 6 }).map((_, index) => (
+                <div
+                  key={index}
+                  className="rounded-[28px] border border-white/60 bg-white/70 p-4 shadow-inner shadow-slate-200 animate-pulse"
+                >
+                  <div className="aspect-[4/3] rounded-2xl bg-slate-100" />
+                  <div className="mt-4 space-y-3">
+                    <div className="h-4 rounded bg-slate-100" />
+                    <div className="h-4 rounded bg-slate-100" />
+                    <div className="h-10 rounded bg-slate-100" />
                   </div>
                 </div>
               ))}
             </div>
           ) : products.length === 0 ? (
-            // Empty state
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center space-y-4">
-                <svg className="w-16 h-16 mx-auto text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                </svg>
-                <p className="text-gray-500 font-medium">No products found</p>
-                <button
-                  onClick={handleSync}
-                  className="px-6 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors"
-                >
-                  Sync Now
-                </button>
-              </div>
+            <div className="rounded-[32px] border border-dashed border-indigo-200 bg-white/80 p-10 text-center shadow-md shadow-indigo-100">
+              <p className="text-lg font-semibold text-slate-900">No products match your search</p>
+              <p className="mt-2 text-sm text-slate-500">
+                Try a different keyword or sync the latest bundle to refresh the catalog.
+              </p>
+              <button
+                onClick={handleSync}
+                className="mt-6 inline-flex items-center justify-center rounded-full bg-indigo-600 px-6 py-3 text-white shadow-lg shadow-indigo-500/30"
+              >
+                Sync now
+              </button>
             </div>
           ) : (
-            // Product cards
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {products.map((product, index) => (
-                <div
+                <article
                   key={product.id}
-                  className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all animate-fade-in"
-                  style={{ animationDelay: `${index * 50}ms` }}
+                  className="group rounded-[30px] border border-white/70 bg-white/90 p-4 shadow-lg shadow-slate-900/5 transition hover:-translate-y-1 hover:shadow-xl"
+                  style={{ animationDelay: `${index * 40}ms` }}
                 >
-                  {/* Image - clickable to detail */}
                   <button
                     onClick={() => router.push(`/product/${product.id}`)}
-                    className="w-full aspect-square relative bg-gray-100 overflow-hidden focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2"
-                    aria-label={`View details for ${product.name[language]}`}
+                    className="relative block aspect-[4/3] overflow-hidden rounded-2xl bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                    aria-label={`View details for ${product.name[language] || product.name.ja}`}
                   >
-                    <img
+                    <Image
                       src="/images/placeholder.png"
                       alt={product.name[language] || product.name.ja}
-                      className="w-full h-full object-cover transition-opacity duration-300"
-                      loading="lazy"
-                      onError={(e) => {
-                        e.currentTarget.src = '/images/placeholder.png';
+                      fill
+                      sizes="(min-width: 1024px) 30vw, (min-width: 768px) 45vw, 100vw"
+                      className="object-cover transition duration-500 group-hover:scale-105"
+                      onError={(event) => {
+                        event.currentTarget.src = '/images/placeholder.png';
                       }}
                     />
                   </button>
 
-                  {/* Content */}
-                  <div className="p-4 space-y-3">
-                    <h3 className="font-semibold text-gray-900 line-clamp-2 min-h-[3rem]">
+                  <div className="mt-4 space-y-3">
+                    <div className="flex items-center justify-between text-xs uppercase tracking-wide text-slate-400">
+                      <span>{product.category}</span>
+                      {product.pointValue && (
+                        <span className="font-semibold text-indigo-600">{product.pointValue} pts</span>
+                      )}
+                    </div>
+
+                    <h3 className="text-lg font-semibold text-slate-900 line-clamp-2">
                       {product.name[language] || product.name.ja}
                     </h3>
 
-                    {/* Compare Button */}
+                    <p className="text-sm text-slate-500 line-clamp-3 min-h-[3.5rem]">
+                      {product.description[language] || product.description.ja}
+                    </p>
+
+                    {product.tags?.length ? (
+                      <div className="flex flex-wrap gap-2">
+                        {product.tags.slice(0, 3).map((tag) => (
+                          <span
+                            key={tag}
+                            className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600"
+                          >
+                            #{tag}
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
+
                     <button
                       onClick={() => toggleCompare(product.id)}
                       disabled={compareIds.length >= 2 && !compareIds.includes(product.id)}
-                      className={`w-full px-4 py-2 rounded-lg font-medium transition-all min-h-[44px] ${
+                      className={`w-full rounded-2xl px-4 py-3 text-sm font-semibold transition ${
                         compareIds.includes(product.id)
-                          ? 'bg-gray-900 text-white'
+                          ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/30'
                           : compareIds.length >= 2
-                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                          ? 'bg-slate-100 text-slate-400'
+                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                       }`}
                     >
-                      {compareIds.includes(product.id) ? 'Selected' : 'Compare'}
+                      {compareIds.includes(product.id) ? 'Added to compare' : 'Add to compare'}
                     </button>
                   </div>
-                </div>
+                </article>
               ))}
             </div>
           )}
-        </div>
+        </section>
 
-        {/* Compare Drawer */}
         {compareIds.length > 0 && (
           <CompareDrawer
             products={compareProducts}

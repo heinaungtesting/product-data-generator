@@ -17,8 +17,8 @@ export default function BottomNav() {
   const { t } = useTranslation();
 
   return (
-    <nav className="sticky bottom-0 bg-bg border-t border-fg/10 pb-safe">
-      <div className="flex items-center justify-around h-16">
+    <nav className="sticky bottom-0 z-50 border-t border-white/70 bg-white/85 pb-safe backdrop-blur-2xl">
+      <div className="mx-auto flex h-20 w-full max-w-[430px] items-center justify-around px-4">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           const Icon = item.icon;
@@ -27,15 +27,15 @@ export default function BottomNav() {
             <Link
               key={item.id}
               href={item.href}
-              className={`flex flex-col items-center justify-center min-w-[44px] min-h-[44px] px-2 rounded-lg transition-colors ${
+              className={`flex min-w-[56px] flex-col items-center justify-center rounded-2xl px-3 py-2 text-xs font-medium transition-all ${
                 isActive
-                  ? 'text-accent'
-                  : 'text-fg/60 hover:text-fg active:bg-fg/5'
+                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30'
+                  : 'text-slate-500 hover:text-slate-900'
               }`}
               aria-label={t(item.label)}
             >
-              <Icon className="w-6 h-6 mb-1" />
-              <span className="text-xs font-medium">{t(item.label)}</span>
+              <Icon className="mb-1 h-5 w-5" />
+              <span>{t(item.label)}</span>
             </Link>
           );
         })}

@@ -6,7 +6,7 @@ import { useState, useEffect, useRef, DependencyList } from 'react';
  */
 export function useLiveQuery<T>(
   querier: () => T | Promise<T>,
-  deps?: DependencyList
+  deps: DependencyList = []
 ): T | undefined {
   const [result, setResult] = useState<T | undefined>(undefined);
   const mountedRef = useRef(true);
@@ -42,6 +42,7 @@ export function useLiveQuery<T>(
       mountedRef.current = false;
       clearInterval(intervalId);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
 
   useEffect(() => {

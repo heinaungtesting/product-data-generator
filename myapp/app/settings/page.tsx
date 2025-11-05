@@ -1,12 +1,44 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type ChangeEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useLiveQuery } from '@/lib/hooks';
 import AppShell from '@/components/AppShell';
+import { useLiveQuery } from '@/lib/hooks';
 import { useAppStore, type Theme } from '@/lib/store';
 import { db } from '@/lib/db';
 import { getSyncStatus } from '@/lib/sync';
+
+interface PreferenceToggleProps {
+  label: string;
+  description: string;
+  value: boolean;
+  onChange: (next: boolean) => void;
+}
+
+function PreferenceToggle({ label, description, value, onChange }: PreferenceToggleProps) {
+  return (
+    <div className="flex items-center justify-between gap-4 rounded-2xl border border-white/60 bg-white/90 p-4 shadow-inner shadow-slate-200">
+      <div>
+        <p className="text-base font-semibold text-slate-900">{label}</p>
+        <p className="text-sm text-slate-500">{description}</p>
+      </div>
+      <button
+        type="button"
+        onClick={() => onChange(!value)}
+        className={`relative h-7 w-12 rounded-full transition ${
+          value ? 'bg-indigo-600' : 'bg-slate-200'
+        }`}
+        aria-pressed={value}
+      >
+        <span
+          className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition ${
+            value ? 'translate-x-5' : 'translate-x-0.5'
+          }`}
+        />
+      </button>
+    </div>
+  );
+}
 
 export default function SettingsPage() {
   const { t } = useTranslation();
@@ -21,7 +53,7 @@ export default function SettingsPage() {
     setHapticEnabled,
   } = useAppStore();
 
-  const [showUrlEdit, setShowUrlEdit] = useState(false);
+  const [isEditingUrl, setIsEditingUrl] = useState(false);
   const [urlInput, setUrlInput] = useState(bundleUrl);
 
   const syncStatus = useLiveQuery(() => getSyncStatus());
@@ -31,17 +63,16 @@ export default function SettingsPage() {
     const data = await db.exportData();
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `myapp-export-${new Date().toISOString().split('T')[0]}.json`;
-    a.click();
+    const element = document.createElement('a');
+    element.href = url;
+    element.download = `myapp-export-${new Date().toISOString().split('T')[0]}.json`;
+    element.click();
     URL.revokeObjectURL(url);
   };
 
-  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const handleImport = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
     if (!file) return;
-
     const text = await file.text();
     const data = JSON.parse(text);
     await db.importData(data);
@@ -49,7 +80,7 @@ export default function SettingsPage() {
   };
 
   const handleClearData = async () => {
-    if (confirm('Clear all data? This cannot be undone.')) {
+    if (window.confirm('Clear all local data? This cannot be undone.')) {
       await db.clearAll();
       alert('Data cleared');
     }
@@ -57,150 +88,134 @@ export default function SettingsPage() {
 
   return (
     <AppShell>
-      <div className="p-4 space-y-6 max-w-2xl mx-auto">
-        <h1 className="text-2xl font-bold">{t('settings')}</h1>
+      <div className="space-y-6">
+        <section className="rounded-[32px] border border-white/70 bg-white/90 p-6 shadow-2xl shadow-indigo-100">
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-indigo-500">{t('settings')}</p>
+          <h1 className="mt-2 text-3xl font-semibold text-slate-900">Control center</h1>
+          <p className="mt-2 text-sm text-slate-500">
+            Manage appearance, syncing, and data controls for the Product Data Generator companion app.
+          </p>
+        </section>
 
-        {/* Appearance */}
-        <section>
-          <h2 className="text-lg font-semibold mb-3">{t('appearance')}</h2>
+        <section className="rounded-[32px] border border-white/70 bg-white/90 p-6 shadow-xl shadow-slate-200">
+          <h2 className="text-lg font-semibold text-slate-900">{t('appearance')}</h2>
+          <p className="text-sm text-slate-500">Choose how the interface adapts to your environment.</p>
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            {(['light', 'dark', 'auto'] as Theme[]).map((option) => (
+              <button
+                key={option}
+                onClick={() => setTheme(option)}
+                className={`rounded-2xl border px-4 py-3 text-sm font-semibold transition ${
+                  theme === option
+                    ? 'border-indigo-200 bg-indigo-50 text-indigo-700 shadow-inner shadow-indigo-100'
+                    : 'border-slate-200 bg-white text-slate-600 hover:border-indigo-100'
+                }`}
+              >
+                {t(option)}
+              </button>
+            ))}
+          </div>
+        </section>
 
-          <div className="space-y-3">
-            <div>
-              <label className="block text-sm font-medium mb-2">{t('theme')}</label>
-              <div className="flex gap-2">
-                {(['light', 'dark', 'auto'] as Theme[]).map((themeOption) => (
-                  <button
-                    key={themeOption}
-                    onClick={() => setTheme(themeOption)}
-                    className={`flex-1 py-2 px-4 rounded-lg font-medium min-h-11 ${
-                      theme === themeOption
-                        ? 'bg-accent text-white'
-                        : 'bg-fg/5 text-fg hover:bg-fg/10'
-                    }`}
-                  >
-                    {t(themeOption)}
-                  </button>
-                ))}
+        <section className="space-y-4 rounded-[32px] border border-white/70 bg-white/90 p-6 shadow-xl shadow-slate-200">
+          <h2 className="text-lg font-semibold text-slate-900">{t('dataManagement')}</h2>
+          <div className="rounded-2xl border border-indigo-50 bg-indigo-50/60 p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-slate-900">{t('bundleUrlLabel')}</p>
+                <p className="text-xs text-slate-500">Remote source for the synced bundle</p>
               </div>
+              <button
+                onClick={() => setIsEditingUrl(!isEditingUrl)}
+                className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600"
+              >
+                {isEditingUrl ? 'Cancel' : 'Edit'}
+              </button>
             </div>
-          </div>
-        </section>
 
-        {/* Data Management */}
-        <section>
-          <h2 className="text-lg font-semibold mb-3">{t('dataManagement')}</h2>
-
-          <div className="space-y-3">
-            <div>
-              <label className="block text-sm font-medium mb-2">{t('bundleUrlLabel')}</label>
-              {showUrlEdit ? (
-                <div className="flex gap-2">
-                  <input
-                    type="url"
-                    value={urlInput}
-                    onChange={(e) => setUrlInput(e.target.value)}
-                    className="flex-1 px-3 py-2 border border-fg/20 rounded-lg bg-bg text-fg"
-                    placeholder="https://..."
-                  />
-                  <button
-                    onClick={() => {
-                      setBundleUrl(urlInput);
-                      setShowUrlEdit(false);
-                    }}
-                    className="px-4 py-2 bg-accent text-white rounded-lg min-h-11"
-                  >
-                    {t('save')}
-                  </button>
-                </div>
-              ) : (
-                <div
-                  onClick={() => setShowUrlEdit(true)}
-                  className="p-3 bg-fg/5 rounded-lg text-sm text-fg/60 cursor-pointer hover:bg-fg/10"
+            {isEditingUrl ? (
+              <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+                <input
+                  type="url"
+                  value={urlInput}
+                  onChange={(event) => setUrlInput(event.target.value)}
+                  placeholder="https://example.com/bundle.json.gz"
+                  className="flex-1 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm focus:border-indigo-300 focus:outline-none"
+                />
+                <button
+                  onClick={() => {
+                    setBundleUrl(urlInput);
+                    setIsEditingUrl(false);
+                  }}
+                  className="rounded-2xl bg-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-400/40"
                 >
-                  {bundleUrl || 'Not configured'}
-                </div>
-              )}
-            </div>
-
-            <label className="flex items-center justify-between p-3 bg-fg/5 rounded-lg cursor-pointer hover:bg-fg/10">
-              <span className="font-medium">{t('autoSync')}</span>
-              <input
-                type="checkbox"
-                checked={autoSyncEnabled}
-                onChange={(e) => setAutoSyncEnabled(e.target.checked)}
-                className="w-6 h-6 rounded accent-accent"
-              />
-            </label>
-
-            <label className="flex items-center justify-between p-3 bg-fg/5 rounded-lg cursor-pointer hover:bg-fg/10">
-              <span className="font-medium">{t('hapticFeedback')}</span>
-              <input
-                type="checkbox"
-                checked={hapticEnabled}
-                onChange={(e) => setHapticEnabled(e.target.checked)}
-                className="w-6 h-6 rounded accent-accent"
-              />
-            </label>
+                  {t('save')}
+                </button>
+              </div>
+            ) : (
+              <p className="mt-4 rounded-2xl border border-white/80 bg-white/70 px-4 py-3 text-sm text-slate-600">
+                {bundleUrl || 'Not configured'}
+              </p>
+            )}
           </div>
+
+          <PreferenceToggle
+            label={t('autoSync')}
+            description="Refresh bundle once per hour when enabled"
+            value={autoSyncEnabled}
+            onChange={setAutoSyncEnabled}
+          />
+
+          <PreferenceToggle
+            label={t('hapticFeedback')}
+            description="Subtle vibrations confirm key actions"
+            value={hapticEnabled}
+            onChange={setHapticEnabled}
+          />
         </section>
 
-        {/* Backup */}
-        <section>
-          <div className="space-y-2">
+        <section className="rounded-[32px] border border-white/70 bg-white/90 p-6 shadow-xl shadow-slate-200">
+          <h2 className="text-lg font-semibold text-slate-900">Backup & restore</h2>
+          <p className="text-sm text-slate-500">Move your local catalog between devices in a single tap.</p>
+          <div className="mt-4 grid gap-4 sm:grid-cols-3">
             <button
               onClick={handleExport}
-              className="w-full py-3 px-4 bg-accent text-white rounded-lg font-medium min-h-11"
+              className="rounded-2xl bg-slate-900 px-4 py-4 text-sm font-semibold text-white shadow-lg shadow-slate-900/30 transition active:scale-[0.99]"
             >
               {t('exportData')}
             </button>
 
-            <label className="block w-full py-3 px-4 bg-fg/10 text-fg rounded-lg font-medium text-center cursor-pointer hover:bg-fg/20 min-h-11">
+            <label className="flex cursor-pointer items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-4 text-center text-sm font-semibold text-slate-700 shadow-inner shadow-slate-100 transition hover:border-indigo-200">
               {t('importData')}
-              <input
-                type="file"
-                accept=".json"
-                onChange={handleImport}
-                className="hidden"
-              />
+              <input type="file" accept=".json" onChange={handleImport} className="hidden" />
             </label>
 
             <button
               onClick={handleClearData}
-              className="w-full py-3 px-4 bg-danger text-white rounded-lg font-medium min-h-11"
+              className="rounded-2xl border border-red-200 bg-red-50 px-4 py-4 text-sm font-semibold text-red-600 shadow-inner shadow-red-100 transition hover:bg-red-100"
             >
               {t('clearData')}
             </button>
           </div>
         </section>
 
-        {/* About */}
-        <section>
-          <h2 className="text-lg font-semibold mb-3">{t('about')}</h2>
-
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between p-3 bg-fg/5 rounded-lg">
-              <span className="text-fg/60">{t('version')}</span>
-              <span className="font-medium">1.0.0</span>
-            </div>
-
-            <div className="flex justify-between p-3 bg-fg/5 rounded-lg">
-              <span className="text-fg/60">{t('productCount')}</span>
-              <span className="font-medium">{productCount || 0}</span>
-            </div>
-
-            <div className="flex justify-between p-3 bg-fg/5 rounded-lg">
-              <span className="text-fg/60">{t('lastSync')}</span>
-              <span className="font-medium">
-                {syncStatus?.lastSync
-                  ? new Date(syncStatus.lastSync).toLocaleString()
-                  : 'Never'}
-              </span>
-            </div>
-
-            <div className="flex justify-between p-3 bg-fg/5 rounded-lg">
-              <span className="text-fg/60">ETag</span>
-              <span className="font-mono text-xs">{syncStatus?.lastEtag || 'None'}</span>
-            </div>
+        <section className="rounded-[32px] border border-white/70 bg-white/90 p-6 shadow-xl shadow-slate-200">
+          <h2 className="text-lg font-semibold text-slate-900">{t('about')}</h2>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            {[
+              { label: t('version'), value: '1.0.0' },
+              { label: t('productCount'), value: productCount ?? 0 },
+              {
+                label: t('lastSync'),
+                value: syncStatus?.lastSync ? new Date(syncStatus.lastSync).toLocaleString() : 'Never',
+              },
+              { label: 'ETag', value: syncStatus?.lastEtag || 'None' },
+            ].map((item) => (
+              <div key={item.label} className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{item.label}</p>
+                <p className="mt-2 text-lg font-semibold text-slate-900">{item.value}</p>
+              </div>
+            ))}
           </div>
         </section>
       </div>

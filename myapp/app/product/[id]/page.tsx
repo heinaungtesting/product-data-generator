@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { db, type Product } from '@/lib/db';
@@ -41,27 +42,23 @@ export default function ProductDetailPage() {
         points: product.pointValue || 1,
         snapshot: {
           name: product.name,
-          imageUrl: null
-        }
+          imageUrl: null,
+        },
       };
 
-      // Try to save to server
       const response = await fetch('/api/logs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(logEntry)
+        body: JSON.stringify(logEntry),
       });
 
       if (!response.ok) {
         throw new Error('Failed to save log');
       }
 
-      // Show success feedback
       alert('Saved to log!');
     } catch (error) {
       console.error('Error saving log:', error);
-
-      // Queue for later if offline
       const queue = JSON.parse(localStorage.getItem('log.queue') || '[]');
       queue.push({
         id: product.id,
@@ -69,11 +66,10 @@ export default function ProductDetailPage() {
         points: product.pointValue || 1,
         snapshot: {
           name: product.name,
-          imageUrl: null
-        }
+          imageUrl: null,
+        },
       });
       localStorage.setItem('log.queue', JSON.stringify(queue));
-
       alert('Saved offline. Will sync later.');
     } finally {
       setSaving(false);
@@ -82,30 +78,29 @@ export default function ProductDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-indigo-50 via-white to-white">
+        <div className="h-16 w-16 animate-spin rounded-full border-4 border-indigo-500 border-t-transparent" />
       </div>
     );
   }
 
   if (!product) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center gap-4 p-4">
-        <p className="text-gray-600 font-medium">Product not found</p>
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-gradient-to-b from-indigo-50 via-white to-white p-4 text-center">
+        <p className="text-lg font-semibold text-slate-600">Product not found</p>
         <button
           onClick={() => router.push('/')}
-          className="px-6 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors"
+          className="rounded-full bg-indigo-600 px-6 py-3 text-white shadow-lg shadow-indigo-400/50 transition hover:-translate-y-0.5"
         >
-          Back to Products
+          Back to library
         </button>
       </div>
     );
   }
 
-  // Helper to split text into bullets
   const toBullets = (text?: string) => {
     if (!text) return [];
-    return text.split('\n').map(s => s.trim()).filter(Boolean);
+    return text.split('\n').map((line) => line.trim()).filter(Boolean);
   };
 
   const currentName = product.name[language] || product.name.ja;
@@ -115,110 +110,121 @@ export default function ProductDetailPage() {
   const currentGoodFor = product.goodFor[language] || product.goodFor.ja;
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
-      {/* Back Button */}
-      <div className="sticky top-0 z-10 bg-white/90 backdrop-blur-sm border-b border-gray-200">
-        <button
-          onClick={() => router.push('/')}
-          className="flex items-center gap-2 px-4 py-4 text-gray-700 hover:text-gray-900 transition-colors min-h-[44px]"
-        >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-          <span className="font-medium">Back</span>
-        </button>
+    <div className="min-h-screen bg-gradient-to-b from-indigo-50 via-white to-white pb-32">
+      <div className="sticky top-0 z-20 border-b border-white/70 bg-white/80 backdrop-blur-xl">
+        <div className="mx-auto flex h-16 max-w-5xl items-center gap-3 px-4">
+          <button
+            onClick={() => router.push('/')}
+            className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:-translate-y-0.5 hover:border-indigo-200 hover:text-indigo-600"
+          >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Back
+          </button>
+          <span className="text-sm text-slate-500">
+            {product.category} • {product.pointValue ?? 0} pts
+          </span>
+        </div>
       </div>
 
-      {/* Hero Image */}
-      <div className="aspect-square bg-gray-200 relative">
-        <img
-          src="/images/placeholder.png"
-          alt={currentName}
-          className="w-full h-full object-cover"
-          loading="lazy"
-          onError={(e) => {
-            e.currentTarget.src = '/images/placeholder.png';
-          }}
-        />
+      <div className="relative mx-auto mt-6 max-w-5xl px-4">
+        <div className="relative aspect-[4/3] overflow-hidden rounded-[40px] border border-white/70 bg-white shadow-2xl shadow-indigo-100">
+          <Image
+            src="/images/placeholder.png"
+            alt={currentName}
+            fill
+            sizes="(min-width: 1024px) 60vw, 100vw"
+            className="object-cover"
+            priority
+            onError={(event) => {
+              event.currentTarget.src = '/images/placeholder.png';
+            }}
+          />
+        </div>
       </div>
 
-      {/* Content */}
-      <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
-        {/* Title */}
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">
-            {currentName}
-          </h1>
-          {product.pointValue && (
-            <p className="text-2xl font-bold text-blue-600 mt-2">
-              {product.pointValue} points
-            </p>
-          )}
+      <div className="mx-auto mt-8 max-w-4xl space-y-6 px-4">
+        <div className="rounded-[32px] border border-white/70 bg-white/90 p-6 shadow-xl shadow-slate-200">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-indigo-500">{product.category}</p>
+              <h1 className="mt-2 text-3xl font-semibold text-slate-900">{currentName}</h1>
+            </div>
+            {product.pointValue && (
+              <div className="rounded-2xl bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700">
+                {product.pointValue} points
+              </div>
+            )}
+          </div>
+
+          <p className="mt-4 text-base leading-relaxed text-slate-600 whitespace-pre-line">{currentDesc}</p>
+
+          {product.tags?.length ? (
+            <div className="mt-4 flex flex-wrap gap-2">
+              {product.tags.map((tag) => (
+                <span key={tag} className="rounded-full bg-slate-100 px-4 py-1 text-sm font-medium text-slate-600">
+                  #{tag}
+                </span>
+              ))}
+            </div>
+          ) : null}
         </div>
 
-        {/* Description */}
-        <div className="bg-white rounded-xl p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-gray-900 mb-3">Description</h2>
-          <p className="text-gray-700 leading-relaxed whitespace-pre-line">
-            {currentDesc}
-          </p>
-        </div>
-
-        {/* Effects */}
         {currentEffects && (
-          <div className="bg-white rounded-xl p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900 mb-3">Effects</h2>
-            <ul className="space-y-2">
-              {toBullets(currentEffects).map((effect, i) => (
-                <li key={i} className="flex gap-2 text-gray-700">
-                  <span className="text-blue-600 font-bold">•</span>
+          <section className="rounded-[28px] border border-white/60 bg-white/90 p-6 shadow-lg shadow-slate-200">
+            <h2 className="text-lg font-semibold text-slate-900">Effects</h2>
+            <ul className="mt-4 space-y-3">
+              {toBullets(currentEffects).map((effect, index) => (
+                <li key={effect + index} className="flex gap-3 text-slate-600">
+                  <span className="mt-1 h-2 w-2 rounded-full bg-indigo-500" />
                   <span>{effect}</span>
                 </li>
               ))}
             </ul>
-          </div>
+          </section>
         )}
 
-        {/* Side Effects */}
         {currentSideEffects && (
-          <div className="bg-white rounded-xl p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900 mb-3">Side Effects</h2>
-            <ul className="space-y-2">
-              {toBullets(currentSideEffects).map((effect, i) => (
-                <li key={i} className="flex gap-2 text-gray-700">
-                  <span className="text-amber-600 font-bold">•</span>
+          <section className="rounded-[28px] border border-white/60 bg-white/90 p-6 shadow-lg shadow-slate-200">
+            <h2 className="text-lg font-semibold text-slate-900">Side effects</h2>
+            <ul className="mt-4 space-y-3">
+              {toBullets(currentSideEffects).map((effect, index) => (
+                <li key={effect + index} className="flex gap-3 text-slate-600">
+                  <span className="mt-1 h-2 w-2 rounded-full bg-amber-500" />
                   <span>{effect}</span>
                 </li>
               ))}
             </ul>
-          </div>
+          </section>
         )}
 
-        {/* Good For */}
         {currentGoodFor && (
-          <div className="bg-white rounded-xl p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900 mb-3">Good For</h2>
-            <ul className="space-y-2">
-              {toBullets(currentGoodFor).map((item, i) => (
-                <li key={i} className="flex gap-2 text-gray-700">
-                  <span className="text-green-600 font-bold">•</span>
-                  <span>{item}</span>
+          <section className="rounded-[28px] border border-white/60 bg-white/90 p-6 shadow-lg shadow-slate-200">
+            <h2 className="text-lg font-semibold text-slate-900">Recommended for</h2>
+            <ul className="mt-4 space-y-3">
+              {toBullets(currentGoodFor).map((entry, index) => (
+                <li key={entry + index} className="flex gap-3 text-slate-600">
+                  <span className="mt-1 h-2 w-2 rounded-full bg-emerald-500" />
+                  <span>{entry}</span>
                 </li>
               ))}
             </ul>
-          </div>
+          </section>
         )}
       </div>
 
-      {/* Footer - Save to Log */}
-      <div className="fixed inset-x-0 bottom-0 bg-white border-t border-gray-200 p-4 shadow-lg">
-        <div className="max-w-3xl mx-auto">
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-white/70 bg-white/90 p-4 shadow-2xl shadow-slate-900/10 backdrop-blur-2xl">
+        <div className="mx-auto flex max-w-4xl items-center gap-4">
+          <div className="hidden flex-1 text-sm text-slate-500 md:block">
+            Save this product to your daily log so it appears across devices once synced.
+          </div>
           <button
             onClick={handleSaveToLog}
             disabled={saving}
-            className="w-full px-6 py-4 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-blue-600/20"
+            className="flex-1 rounded-2xl bg-gradient-to-r from-indigo-600 via-violet-600 to-sky-500 px-6 py-4 text-base font-semibold text-white shadow-xl shadow-indigo-500/40 transition active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 md:flex-none md:min-w-[220px]"
           >
-            {saving ? 'Saving...' : 'Save to Log'}
+            {saving ? 'Saving…' : 'Save to log'}
           </button>
         </div>
       </div>

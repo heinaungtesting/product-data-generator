@@ -71,7 +71,7 @@ export const useAppStore = create<AppState>()(
       // Compare
       compareIds: [],
       addToCompare: (id) => set((state) => {
-        if (state.compareIds.length >= 4) return state;
+        if (state.compareIds.length >= 2) return state;
         if (state.compareIds.includes(id)) return state;
         return { compareIds: [...state.compareIds, id] };
       }),
