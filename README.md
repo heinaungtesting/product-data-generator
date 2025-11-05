@@ -2,6 +2,14 @@
 
 A complete, **100% free**, **privacy-first** product management system with desktop catalog manager and mobile PWA companion. Perfect for small businesses, personal projects, or anyone managing multilingual product catalogs without cloud services.
 
+> **🚀 NEW: Supabase Real-Time Architecture**
+>
+> This project now supports **automatic, real-time bundle generation** using Supabase! No more manual sync scripts or git commits. See **[SUPABASE_SETUP.md](./SUPABASE_SETUP.md)** for the new architecture.
+>
+> **Benefits:** ⚡ < 1 second updates • 🔄 Automatic bundles • 💰 Free tier ($0/month) • 📦 No git commits for data
+>
+> The legacy SQLite/GitHub Pages workflow is still available for fully offline operation.
+
 ---
 
 ## 🎯 What Is This?

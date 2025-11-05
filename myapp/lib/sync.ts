@@ -1,5 +1,5 @@
 /**
- * Sync System - Downloads bundle from GitHub Pages and updates IndexedDB
+ * Sync System - Downloads bundle from Supabase Storage and updates IndexedDB
  * Uses ETag for efficient updates
  */
 

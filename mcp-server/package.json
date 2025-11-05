@@ -3,15 +3,17 @@
   "version": "1.0.0",
   "description": "Claude MCP Server for PDG Bundle Generation",
   "type": "module",
-  "main": "index.js",
+  "main": "index-supabase.js",
   "scripts": {
-    "start": "node index.js",
+    "start": "node index-supabase.js",
+    "start:legacy": "node index.js",
     "build-bundle": "node build-bundle-direct.js"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
     "@octokit/rest": "^22.0.1",
     "@prisma/client": "^6.18.0",
+    "@supabase/supabase-js": "^2.39.3",
     "better-sqlite3": "^11.5.0",
     "pako": "^2.1.0",
     "zod": "^4.1.12"
