@@ -1,49 +1,60 @@
 'use client';
 
-import { useState } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
 import LanguageToggle from './LanguageToggle';
-import SearchBar from './SearchBar';
+
+const NAV_ITEMS = [
+  { href: '/', translationKey: 'home', fallback: 'Home' },
+  { href: '/log', translationKey: 'log', fallback: 'Log' },
+  { href: '/calendar', translationKey: 'calendar', fallback: 'Calendar' },
+  { href: '/settings', translationKey: 'settings', fallback: 'Settings' },
+];
 
 export default function TopBar() {
+  const pathname = usePathname();
   const { t } = useTranslation();
-  const [showSearch, setShowSearch] = useState(false);
+
+  const normalizePath = (path: string) => {
+    if (path === '/') return '/';
+    return path.replace(/\/+$/, '');
+  };
+
+  const currentPath = normalizePath(pathname || '/');
 
   return (
-    <header className="sticky top-0 z-50 border-b border-white/60 bg-white/80 backdrop-blur-xl">
-      <div className="safe-top mx-auto flex h-16 w-full max-w-[430px] items-center gap-3 px-4">
-        {/* Left: Menu Button */}
-        <button
-          className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white shadow-sm shadow-slate-900/5 transition hover:-translate-y-0.5 hover:shadow-md"
-          aria-label="Menu"
-        >
-          <svg className="h-6 w-6 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
-        </button>
-
-        {/* Center: Search or Logo */}
-        <div className="flex-1">
-          {showSearch ? (
-            <div className="rounded-2xl border border-slate-200 bg-white px-3 shadow-sm shadow-slate-900/5">
-              <SearchBar onClose={() => setShowSearch(false)} />
-            </div>
-          ) : (
-            <button
-              onClick={() => setShowSearch(true)}
-              className="flex h-11 w-full items-center rounded-2xl border border-transparent bg-white/70 px-4 text-sm text-slate-500 shadow-sm shadow-slate-900/5 transition hover:-translate-y-0.5 hover:border-slate-200 hover:bg-white"
-            >
-              <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              {t('search')}
-            </button>
-          )}
+    <header className="relative z-40">
+      <div className="flex items-center justify-between gap-3 rounded-3xl bg-white/80 px-5 py-3 shadow-lg shadow-[#9f8efa1a] backdrop-blur-md">
+        <div className="font-semibold text-slate-900">
+          MyApp
         </div>
-
-        {/* Right: Language Toggle */}
         <LanguageToggle />
       </div>
+
+      <nav className="mt-4 rounded-full bg-white/70 p-1 shadow-md shadow-[#9f8efa29] backdrop-blur-sm">
+        <ul className="grid grid-cols-4 gap-1 text-sm font-semibold text-slate-500">
+          {NAV_ITEMS.map((item) => {
+            const href = item.href === '/' ? '/' : item.href;
+            const isActive = currentPath === href;
+
+            return (
+              <li key={item.href}>
+                <Link
+                  href={href}
+                  className={`flex items-center justify-center rounded-full px-3 py-2 transition ${
+                    isActive
+                      ? 'bg-[#a78bfa] text-white shadow-sm shadow-[#a78bfa80]'
+                      : 'hover:bg-[#ede7ff] hover:text-[#5b4bc4]'
+                  }`}
+                >
+                  {t(item.translationKey, { defaultValue: item.fallback })}
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
     </header>
   );
 }

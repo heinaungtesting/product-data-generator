@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useState, useRef, useCallback } from 'react';
 import { processImage, validateImageFile, formatBytes } from '@/lib/imageUtils';
 import { saveProductImage, deleteProductImage, type ProductImage } from '@/lib/db';
@@ -119,16 +120,17 @@ export default function ImageUpload({ productId, currentImage, onImageChange }: 
       />
 
       {/* Image display or empty state */}
-      <div className="relative w-full aspect-[4/3] bg-gray-100 rounded-xl overflow-hidden">
+      <div className="relative w-full aspect-4/3 bg-gray-100 rounded-xl overflow-hidden">
         {currentImage ? (
           // Show current image
           <div className="relative w-full h-full group">
-            <img
+            <Image
               src={currentImage.imageData}
               alt="Product photo"
-              className="w-full h-full object-cover cursor-pointer"
-              loading="lazy"
-              decoding="async"
+              fill
+              unoptimized
+              sizes="(max-width: 768px) 100vw, 640px"
+              className="object-cover cursor-pointer"
               onClick={handlePreviewClick}
             />
 
@@ -137,7 +139,7 @@ export default function ImageUpload({ productId, currentImage, onImageChange }: 
               <button
                 onClick={handleClick}
                 disabled={loading}
-                className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-3 bg-white rounded-full shadow-lg hover:bg-gray-100 active:scale-95 min-w-[44px] min-h-[44px] flex items-center justify-center"
+                className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-3 bg-white rounded-full shadow-lg hover:bg-gray-100 active:scale-95 min-w-11 min-h-11 flex items-center justify-center"
                 aria-label="Replace photo"
               >
                 <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -149,7 +151,7 @@ export default function ImageUpload({ productId, currentImage, onImageChange }: 
               <button
                 onClick={handleDelete}
                 disabled={loading}
-                className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-3 bg-white rounded-full shadow-lg hover:bg-red-50 active:scale-95 min-w-[44px] min-h-[44px] flex items-center justify-center"
+                className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-3 bg-white rounded-full shadow-lg hover:bg-red-50 active:scale-95 min-w-11 min-h-11 flex items-center justify-center"
                 aria-label="Delete photo"
               >
                 <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -196,7 +198,7 @@ export default function ImageUpload({ productId, currentImage, onImageChange }: 
       {/* Error message */}
       {error && (
         <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
-          <svg className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-5 h-5 text-red-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           <span className="text-red-700 text-sm">{error}</span>
@@ -210,17 +212,20 @@ export default function ImageUpload({ productId, currentImage, onImageChange }: 
           onClick={handleClosePreview}
         >
           <div className="relative w-full h-full flex items-center justify-center p-4">
-            <img
+            <Image
               src={currentImage.imageData}
               alt="Product photo"
-              className="max-w-full max-h-full object-contain"
+              fill
+              unoptimized
+              sizes="100vw"
+              className="object-contain"
               style={{ touchAction: 'pinch-zoom' }}
             />
 
             {/* Close button */}
             <button
               onClick={handleClosePreview}
-              className="absolute top-4 right-4 p-3 bg-white bg-opacity-90 rounded-full shadow-lg hover:bg-opacity-100 active:scale-95 min-w-[44px] min-h-[44px]"
+              className="absolute top-4 right-4 p-3 bg-white bg-opacity-90 rounded-full shadow-lg hover:bg-opacity-100 active:scale-95 min-w-11 min-h-11"
               aria-label="Close preview"
             >
               <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">

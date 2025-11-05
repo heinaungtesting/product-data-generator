@@ -5,9 +5,7 @@
 -- generator, including products, texts, tags, and bundle metadata.
 -- ============================================================================
 
--- Enable UUID extension
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 -- ============================================================================
 -- TABLES
 -- ============================================================================
@@ -29,7 +27,7 @@ CREATE INDEX idx_products_jan_code ON products(jan_code) WHERE jan_code IS NOT N
 
 -- Product texts (multilingual support)
 CREATE TABLE product_texts (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   product_id TEXT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
   lang TEXT NOT NULL DEFAULT 'en',
   name TEXT NOT NULL,
@@ -67,7 +65,7 @@ CREATE INDEX idx_product_tags_tag_id ON product_tags(tag_id);
 
 -- Bundle metadata (tracks generated bundles)
 CREATE TABLE bundle_metadata (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   etag TEXT NOT NULL UNIQUE,
   product_count INTEGER NOT NULL,
   built_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -182,6 +180,7 @@ RETURNS TRIGGER AS $$
 BEGIN
   -- Invoke Edge Function asynchronously using pg_net extension
   -- Note: This requires pg_net extension to be enabled
+  CREATE EXTENSION IF NOT EXISTS "pg_net";
   PERFORM
     net.http_post(
       url := current_setting('app.settings.edge_function_url', true),

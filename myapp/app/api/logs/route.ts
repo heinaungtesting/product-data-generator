@@ -4,14 +4,23 @@
 
 import { NextResponse } from 'next/server';
 
+interface IncomingLogBody {
+  productId?: string;
+  productName?: string;
+  timestamp?: string;
+  category?: string;
+  points?: number;
+  [key: string]: unknown;
+}
+
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    const body = (await request.json()) as IncomingLogBody;
 
     // Validate log entry
-    if (!body.id || !body.timestamp) {
+    if (!body.productId || !body.timestamp) {
       return NextResponse.json(
-        { error: 'Missing required fields: id, timestamp' },
+        { error: 'Missing required fields: productId, timestamp' },
         { status: 400 }
       );
     }

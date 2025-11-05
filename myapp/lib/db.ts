@@ -31,8 +31,9 @@ export interface LogEntry {
   id?: number;
   productId: string;
   productName: string;
-  action: 'view' | 'edit' | 'compare';
+  category: string;
   timestamp: string;
+  points: number;
   notes?: string;
 }
 
@@ -66,7 +67,7 @@ class MyAppDatabase extends Dexie {
       products: 'id, category, *tags, updatedAt, syncedAt',
       drafts: 'id, productId, updatedAt',
       logs: '++id, productId, action, timestamp',
-      meta: 'key, updatedAt'
+      meta: 'key, updatedAt',
     });
 
     // Version 2: Add productImages table
@@ -75,8 +76,31 @@ class MyAppDatabase extends Dexie {
       drafts: 'id, productId, updatedAt',
       logs: '++id, productId, action, timestamp',
       meta: 'key, updatedAt',
-      productImages: 'productId, updatedAt'
+      productImages: 'productId, updatedAt',
     });
+
+    // Version 3: Refresh logs schema with richer data
+    this.version(3)
+      .stores({
+        products: 'id, category, *tags, updatedAt, syncedAt',
+        drafts: 'id, productId, updatedAt',
+        logs: '++id, productId, timestamp, category',
+        meta: 'key, updatedAt',
+        productImages: 'productId, updatedAt',
+      })
+      .upgrade((transaction) => {
+        const logsTable = transaction.table('logs');
+        return logsTable
+          .toCollection()
+          .modify((log: Partial<LogEntry> & { action?: string }) => {
+            log.category = log.category ?? 'unknown';
+            log.points = log.points ?? 0;
+            log.productName = log.productName ?? '';
+            if ('action' in log) {
+              delete (log as { action?: string }).action;
+            }
+          });
+      });
   }
 
   async clearAll() {

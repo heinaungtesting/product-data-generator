@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { getProductImage } from '@/lib/db';
 
@@ -12,6 +13,7 @@ interface ProductThumbnailProps {
 export default function ProductThumbnail({ productId, productName, className = '' }: ProductThumbnailProps) {
   const [thumbnailSrc, setThumbnailSrc] = useState<string>('/images/placeholder.png');
   const [loading, setLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -20,8 +22,13 @@ export default function ProductThumbnail({ productId, productName, className = '
       try {
         const image = await getProductImage(productId);
 
-        if (mounted && image?.thumbnailData) {
-          setThumbnailSrc(image.thumbnailData);
+        if (mounted) {
+          if (image?.thumbnailData) {
+            setThumbnailSrc(image.thumbnailData);
+            setHasError(false);
+          } else {
+            setThumbnailSrc('/images/placeholder.png');
+          }
         }
       } catch (error) {
         console.error('Error loading thumbnail:', error);
@@ -41,14 +48,18 @@ export default function ProductThumbnail({ productId, productName, className = '
 
   return (
     <div className={`relative ${className}`}>
-      <img
+      <Image
         src={thumbnailSrc}
         alt={productName}
-        className="w-full h-full object-cover transition duration-500 group-hover:scale-105"
-        loading="lazy"
-        decoding="async"
-        onError={(e) => {
-          e.currentTarget.src = '/images/placeholder.png';
+        fill
+        unoptimized={!thumbnailSrc.startsWith('/')}
+        sizes="(max-width: 768px) 50vw, 220px"
+        className="object-cover transition duration-500 group-hover:scale-105"
+        onError={() => {
+          if (!hasError) {
+            setHasError(true);
+            setThumbnailSrc('/images/placeholder.png');
+          }
         }}
       />
       {loading && thumbnailSrc === '/images/placeholder.png' && (

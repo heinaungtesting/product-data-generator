@@ -5,10 +5,10 @@ import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
 import AppShell from '@/components/AppShell';
-import CompareDrawer from '@/components/CompareDrawer';
+
 import ProductThumbnail from '@/components/ProductThumbnail';
 import { useLiveQuery } from '@/lib/hooks';
-import { db, type Product } from '@/lib/db';
+import { db } from '@/lib/db';
 import { useAppStore, type Language } from '@/lib/store';
 import { syncNow } from '@/lib/sync';
 
@@ -104,16 +104,7 @@ export default function HomePage() {
     });
   }, []);
 
-  const clearCompare = useCallback(() => {
-    setCompareIds([]);
-  }, []);
-
-  const compareProducts = useMemo(() => {
-    if (!dbProducts) return [];
-    return compareIds
-      .map((id) => dbProducts.find((product) => product.id === id))
-      .filter(Boolean) as Product[];
-  }, [compareIds, dbProducts]);
+ 
 
   const lastSyncLabel = lastSyncTime
     ? new Date(lastSyncTime).toLocaleString()
@@ -302,14 +293,7 @@ export default function HomePage() {
           )}
         </section>
 
-        {compareIds.length > 0 && (
-          <CompareDrawer
-            products={compareProducts}
-            language={language}
-            onClose={clearCompare}
-            onRemove={toggleCompare}
-          />
-        )}
+        
       </div>
     </AppShell>
   );

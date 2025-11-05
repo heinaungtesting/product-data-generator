@@ -29,12 +29,6 @@ interface AppState {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
 
-  // Compare mode
-  compareIds: string[];
-  addToCompare: (id: string) => void;
-  removeFromCompare: (id: string) => void;
-  clearCompare: () => void;
-
   // Settings
   bundleUrl: string;
   setBundleUrl: (url: string) => void;
@@ -67,18 +61,6 @@ export const useAppStore = create<AppState>()(
       // Search
       searchQuery: '',
       setSearchQuery: (searchQuery) => set({ searchQuery }),
-
-      // Compare
-      compareIds: [],
-      addToCompare: (id) => set((state) => {
-        if (state.compareIds.length >= 2) return state;
-        if (state.compareIds.includes(id)) return state;
-        return { compareIds: [...state.compareIds, id] };
-      }),
-      removeFromCompare: (id) => set((state) => ({
-        compareIds: state.compareIds.filter((cid) => cid !== id),
-      })),
-      clearCompare: () => set({ compareIds: [] }),
 
       // Settings
       bundleUrl: '',

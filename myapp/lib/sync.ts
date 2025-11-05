@@ -6,7 +6,12 @@
 import { db, setMeta, getMeta, type Product } from './db';
 import pako from 'pako';
 
-const DEFAULT_BUNDLE_URL = process.env.NEXT_PUBLIC_BUNDLE_URL || '/api/bundle';
+const ENV_BUNDLE_URL =
+  process.env.SUPABASE_BUNDLE_URL ||
+  process.env.NEXT_PUBLIC_BUNDLE_URL ||
+  '';
+
+const DEFAULT_BUNDLE_URL = ENV_BUNDLE_URL || '';
 
 export interface SyncResult {
   success: boolean;
@@ -73,7 +78,13 @@ async function fetchBundle(url: string, etag?: string): Promise<{ data: BundleDa
  */
 export async function syncNow(): Promise<SyncResult> {
   try {
-    const bundleUrl = ((await getMeta('bundleUrl')) as string) || DEFAULT_BUNDLE_URL;
+    const storedUrl = (await getMeta('bundleUrl')) as string | null;
+    const bundleUrl = storedUrl || DEFAULT_BUNDLE_URL;
+
+    if (!bundleUrl) {
+      throw new Error('No bundle URL configured. Set NEXT_PUBLIC_SUPABASE_BUNDLE_URL or configure a bundle URL in settings.');
+    }
+
     const storedEtag = (await getMeta('lastEtag')) as string | null;
 
     const { data, newEtag, notModified } = await fetchBundle(bundleUrl, storedEtag || undefined);

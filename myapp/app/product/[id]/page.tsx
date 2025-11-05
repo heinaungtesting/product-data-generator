@@ -1,6 +1,5 @@
 'use client';
 
-import Image from 'next/image';
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { db, getProductImage, type Product, type ProductImage } from '@/lib/db';
@@ -15,6 +14,7 @@ export default function ProductDetailPage() {
   const [productImage, setProductImage] = useState<ProductImage | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
   const loadProductImage = useCallback(async (productId: string) => {
     try {
@@ -45,57 +45,15 @@ export default function ProductDetailPage() {
     loadProduct();
   }, [params.id, loadProductImage]);
 
+  useEffect(() => {
+    setSaveStatus('idle');
+  }, [product?.id]);
+
   const handleImageChange = useCallback(() => {
     if (product) {
       loadProductImage(product.id);
     }
   }, [product, loadProductImage]);
-
-  const handleSaveToLog = async () => {
-    if (!product) return;
-
-    setSaving(true);
-
-    try {
-      const logEntry = {
-        id: product.id,
-        timestamp: new Date().toISOString(),
-        points: product.pointValue || 1,
-        snapshot: {
-          name: product.name,
-          imageUrl: null,
-        },
-      };
-
-      const response = await fetch('/api/logs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(logEntry),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to save log');
-      }
-
-      alert('Saved to log!');
-    } catch (error) {
-      console.error('Error saving log:', error);
-      const queue = JSON.parse(localStorage.getItem('log.queue') || '[]');
-      queue.push({
-        id: product.id,
-        timestamp: new Date().toISOString(),
-        points: product.pointValue || 1,
-        snapshot: {
-          name: product.name,
-          imageUrl: null,
-        },
-      });
-      localStorage.setItem('log.queue', JSON.stringify(queue));
-      alert('Saved offline. Will sync later.');
-    } finally {
-      setSaving(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -129,6 +87,40 @@ export default function ProductDetailPage() {
   const currentEffects = product.effects[language] || product.effects.ja;
   const currentSideEffects = product.sideEffects[language] || product.sideEffects.ja;
   const currentGoodFor = product.goodFor[language] || product.goodFor.ja;
+
+  const handleSaveToLog = async () => {
+    setSaving(true);
+    setSaveStatus('idle');
+
+    const timestamp = new Date().toISOString();
+    const entry = {
+      productId: product.id,
+      productName: currentName,
+      category: product.category,
+      timestamp,
+      points: product.pointValue ?? 0,
+    };
+
+    try {
+      await db.logs.add(entry);
+
+      // Fire-and-forget: send to API if configured
+      void fetch('/api/logs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(entry),
+      }).catch((error) => {
+        console.warn('Background log sync failed', error);
+      });
+
+      setSaveStatus('success');
+    } catch (error) {
+      console.error('Error saving log:', error);
+      setSaveStatus('error');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-indigo-50 via-white to-white pb-32">
@@ -227,15 +219,19 @@ export default function ProductDetailPage() {
         )}
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-white/70 bg-white/90 p-4 shadow-2xl shadow-slate-900/10 backdrop-blur-2xl">
-        <div className="mx-auto flex max-w-4xl items-center gap-4">
-          <div className="hidden flex-1 text-sm text-slate-500 md:block">
-            Save this product to your daily log so it appears across devices once synced.
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-white/60 bg-white/90 p-4 shadow-2xl shadow-[#b6a8ff33] backdrop-blur-2xl">
+        <div className="mx-auto flex max-w-4xl flex-col items-stretch gap-3 md:flex-row md:items-center">
+          <div className="flex-1 rounded-2xl bg-[#f3efff] px-4 py-3 text-sm text-[#5b4bc4] shadow-inner shadow-[#b6a8ff33]">
+            {saveStatus === 'success'
+              ? 'Saved to your calendar. Check Log or Calendar tabs to review.'
+              : saveStatus === 'error'
+              ? 'We could not save this entry. Please try again.'
+              : 'Save this product to remember when you last used it.'}
           </div>
           <button
             onClick={handleSaveToLog}
             disabled={saving}
-            className="flex-1 rounded-2xl bg-gradient-to-r from-indigo-600 via-violet-600 to-sky-500 px-6 py-4 text-base font-semibold text-white shadow-xl shadow-indigo-500/40 transition active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 md:flex-none md:min-w-[220px]"
+            className="rounded-2xl bg-[#5b4bc4] px-6 py-4 text-base font-semibold text-white shadow-xl shadow-[#5b4bc450] transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 md:min-w-[220px]"
           >
             {saving ? 'Saving…' : 'Save to log'}
           </button>

@@ -10,33 +10,34 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "date-fns": "^4.1.0",
+    "dexie": "^4.0.1",
+    "i18next": "^24.0.0",
+    "i18next-browser-languagedetector": "^8.0.0",
+    "idb": "^8.0.1",
     "next": "15.1.0",
+    "pako": "^2.1.0",
     "react": "19.0.0",
     "react-dom": "19.0.0",
-    "dexie": "^4.0.1",
-    "zustand": "^5.0.2",
-    "i18next": "^24.0.0",
     "react-i18next": "^15.0.0",
-    "i18next-browser-languagedetector": "^8.0.0",
     "react-virtuoso": "^4.10.4",
-    "zod": "^4.1.12",
-    "date-fns": "^4.1.0",
     "workbox-window": "^7.1.0",
-    "idb": "^8.0.1",
-    "pako": "^2.1.0"
+    "zod": "^4.1.12",
+    "zustand": "^5.0.2"
   },
   "devDependencies": {
+    "@types/date-fns": "^2.5.3",
     "@types/node": "^22",
+    "@types/pako": "^2.0.3",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@types/pako": "^2.0.3",
-    "typescript": "^5.7",
-    "tailwindcss": "^3.4.1",
-    "postcss": "^8.4.35",
     "autoprefixer": "^10.4.20",
-    "workbox-webpack-plugin": "^7.1.0",
+    "postcss": "^8.4.35",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5.7",
     "workbox-precaching": "^7.1.0",
     "workbox-routing": "^7.1.0",
-    "workbox-strategies": "^7.1.0"
+    "workbox-strategies": "^7.1.0",
+    "workbox-webpack-plugin": "^7.1.0"
   }
 }
