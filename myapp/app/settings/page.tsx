@@ -122,7 +122,7 @@ export default function SettingsPage() {
   return (
     <AppShell>
       <div className="space-y-6">
-        <section className="rounded-[32px] border border-white/70 bg-white/90 p-6 shadow-2xl shadow-indigo-100">
+        <section className="rounded-4xl border border-white/70 bg-white/90 p-6 shadow-2xl shadow-indigo-100">
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-indigo-500">{t('settings')}</p>
           <h1 className="mt-2 text-3xl font-semibold text-slate-900">Control center</h1>
           <p className="mt-2 text-sm text-slate-500">
@@ -130,7 +130,7 @@ export default function SettingsPage() {
           </p>
         </section>
 
-        <section className="rounded-[32px] border border-white/70 bg-white/90 p-6 shadow-xl shadow-slate-200">
+        <section className="rounded-4xl border border-white/70 bg-white/90 p-6 shadow-xl shadow-slate-200">
           <h2 className="text-lg font-semibold text-slate-900">{t('appearance')}</h2>
           <p className="text-sm text-slate-500">Choose how the interface adapts to your environment.</p>
           <div className="mt-4 grid gap-3 sm:grid-cols-3">
@@ -150,7 +150,7 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        <section className="space-y-4 rounded-[32px] border border-white/70 bg-white/90 p-6 shadow-xl shadow-slate-200">
+        <section className="space-y-4 rounded-4xl border border-white/70 bg-white/90 p-6 shadow-xl shadow-slate-200">
           <h2 className="text-lg font-semibold text-slate-900">{t('dataManagement')}</h2>
           <div className="rounded-2xl border border-indigo-50 bg-indigo-50/60 p-4">
             <div className="flex items-start justify-between gap-3">
@@ -207,7 +207,7 @@ export default function SettingsPage() {
           />
         </section>
 
-        <section className="rounded-[32px] border border-white/70 bg-white/90 p-6 shadow-xl shadow-slate-200">
+        <section className="rounded-4xl border border-white/70 bg-white/90 p-6 shadow-xl shadow-slate-200">
           <h2 className="text-lg font-semibold text-slate-900">Image Storage</h2>
           <p className="text-sm text-slate-500">Manage photos stored locally on your device.</p>
 
@@ -238,7 +238,7 @@ export default function SettingsPage() {
           {storageInfo.quotaUsedPercent > 80 && (
             <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4">
               <div className="flex items-start gap-3">
-                <svg className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
                 <div>
@@ -262,7 +262,7 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        <section className="rounded-[32px] border border-white/70 bg-white/90 p-6 shadow-xl shadow-slate-200">
+        <section className="rounded-4xl border border-white/70 bg-white/90 p-6 shadow-xl shadow-slate-200">
           <h2 className="text-lg font-semibold text-slate-900">Backup & restore</h2>
           <p className="text-sm text-slate-500">Move your local catalog between devices in a single tap.</p>
           <div className="mt-4 grid gap-4 sm:grid-cols-3">
@@ -287,7 +287,7 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        <section className="rounded-[32px] border border-white/70 bg-white/90 p-6 shadow-xl shadow-slate-200">
+        <section className="rounded-4xl border border-white/70 bg-white/90 p-6 shadow-xl shadow-slate-200">
           <h2 className="text-lg font-semibold text-slate-900">{t('about')}</h2>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             {[

@@ -1,6 +1,6 @@
 'use client';
 
-import Image from 'next/image';
+
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
@@ -122,7 +122,7 @@ export default function HomePage() {
   return (
     <AppShell>
       <div className="relative space-y-6">
-        <section className="rounded-[32px] border border-white/70 bg-white/80 p-6 shadow-2xl shadow-indigo-100 backdrop-blur">
+        <section className="rounded-4xl border border-white/70 bg-white/80 p-6 shadow-2xl shadow-indigo-100 backdrop-blur">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-center">
             <div className="flex-1 space-y-3">
               <p className="text-xs font-semibold uppercase tracking-[0.3em] text-indigo-500">
@@ -172,7 +172,7 @@ export default function HomePage() {
               <button
                 onClick={handleSync}
                 disabled={isSyncing}
-                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-indigo-600 via-violet-600 to-sky-500 px-6 py-4 text-white shadow-xl shadow-indigo-500/40 transition active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-linear-to-r from-indigo-600 via-violet-600 to-sky-500 px-6 py-4 text-white shadow-xl shadow-indigo-500/40 transition active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isSyncing ? 'Syncing data…' : 'Sync latest bundle'}
                 <span aria-hidden className="text-xl">↻</span>
@@ -211,7 +211,7 @@ export default function HomePage() {
                   key={index}
                   className="rounded-[28px] border border-white/60 bg-white/70 p-4 shadow-inner shadow-slate-200 animate-pulse"
                 >
-                  <div className="aspect-[4/3] rounded-2xl bg-slate-100" />
+                  <div className="aspect-4/3 rounded-2xl bg-slate-100" />
                   <div className="mt-4 space-y-3">
                     <div className="h-4 rounded bg-slate-100" />
                     <div className="h-4 rounded bg-slate-100" />
@@ -221,7 +221,7 @@ export default function HomePage() {
               ))}
             </div>
           ) : products.length === 0 ? (
-            <div className="rounded-[32px] border border-dashed border-indigo-200 bg-white/80 p-10 text-center shadow-md shadow-indigo-100">
+            <div className="rounded-4xl border border-dashed border-indigo-200 bg-white/80 p-10 text-center shadow-md shadow-indigo-100">
               <p className="text-lg font-semibold text-slate-900">No products match your search</p>
               <p className="mt-2 text-sm text-slate-500">
                 Try a different keyword or sync the latest bundle to refresh the catalog.
@@ -243,7 +243,7 @@ export default function HomePage() {
                 >
                   <button
                     onClick={() => router.push(`/product/${product.id}`)}
-                    className="relative block aspect-[4/3] overflow-hidden rounded-2xl bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                    className="relative block aspect-4/3 overflow-hidden rounded-2xl bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                     aria-label={`View details for ${product.name[language] || product.name.ja}`}
                   >
                     <ProductThumbnail
@@ -265,7 +265,7 @@ export default function HomePage() {
                       {product.name[language] || product.name.ja}
                     </h3>
 
-                    <p className="text-sm text-slate-500 line-clamp-3 min-h-[3.5rem]">
+                    <p className="text-sm text-slate-500 line-clamp-3 min-h-14">
                       {product.description[language] || product.description.ja}
                     </p>
 
