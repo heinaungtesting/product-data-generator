@@ -1,18 +1,29 @@
 'use client';
 
 import Image from 'next/image';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { db, type Product } from '@/lib/db';
+import { db, getProductImage, type Product, type ProductImage } from '@/lib/db';
 import { useAppStore } from '@/lib/store';
+import ImageUpload from '@/components/ImageUpload';
 
 export default function ProductDetailPage() {
   const router = useRouter();
   const params = useParams();
   const { language } = useAppStore();
   const [product, setProduct] = useState<Product | null>(null);
+  const [productImage, setProductImage] = useState<ProductImage | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  const loadProductImage = useCallback(async (productId: string) => {
+    try {
+      const image = await getProductImage(productId);
+      setProductImage(image);
+    } catch (error) {
+      console.error('Error loading product image:', error);
+    }
+  }, []);
 
   useEffect(() => {
     const loadProduct = async () => {
@@ -20,6 +31,10 @@ export default function ProductDetailPage() {
       try {
         const dbProduct = await db.products.get(id);
         setProduct(dbProduct || null);
+
+        if (dbProduct) {
+          await loadProductImage(dbProduct.id);
+        }
       } catch (error) {
         console.error('Error loading product:', error);
         setProduct(null);
@@ -28,7 +43,13 @@ export default function ProductDetailPage() {
     };
 
     loadProduct();
-  }, [params.id]);
+  }, [params.id, loadProductImage]);
+
+  const handleImageChange = useCallback(() => {
+    if (product) {
+      loadProductImage(product.id);
+    }
+  }, [product, loadProductImage]);
 
   const handleSaveToLog = async () => {
     if (!product) return;
@@ -129,19 +150,11 @@ export default function ProductDetailPage() {
       </div>
 
       <div className="relative mx-auto mt-6 max-w-5xl px-4">
-        <div className="relative aspect-[4/3] overflow-hidden rounded-[40px] border border-white/70 bg-white shadow-2xl shadow-indigo-100">
-          <Image
-            src="/images/placeholder.png"
-            alt={currentName}
-            fill
-            sizes="(min-width: 1024px) 60vw, 100vw"
-            className="object-cover"
-            priority
-            onError={(event) => {
-              event.currentTarget.src = '/images/placeholder.png';
-            }}
-          />
-        </div>
+        <ImageUpload
+          productId={product.id}
+          currentImage={productImage}
+          onImageChange={handleImageChange}
+        />
       </div>
 
       <div className="mx-auto mt-8 max-w-4xl space-y-6 px-4">

@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
 import AppShell from '@/components/AppShell';
 import CompareDrawer from '@/components/CompareDrawer';
+import ProductThumbnail from '@/components/ProductThumbnail';
 import { useLiveQuery } from '@/lib/hooks';
 import { db, type Product } from '@/lib/db';
 import { useAppStore, type Language } from '@/lib/store';
@@ -245,15 +246,10 @@ export default function HomePage() {
                     className="relative block aspect-[4/3] overflow-hidden rounded-2xl bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                     aria-label={`View details for ${product.name[language] || product.name.ja}`}
                   >
-                    <Image
-                      src="/images/placeholder.png"
-                      alt={product.name[language] || product.name.ja}
-                      fill
-                      sizes="(min-width: 1024px) 30vw, (min-width: 768px) 45vw, 100vw"
-                      className="object-cover transition duration-500 group-hover:scale-105"
-                      onError={(event) => {
-                        event.currentTarget.src = '/images/placeholder.png';
-                      }}
+                    <ProductThumbnail
+                      productId={product.id}
+                      productName={product.name[language] || product.name.ja}
+                      className="absolute inset-0"
                     />
                   </button>
 

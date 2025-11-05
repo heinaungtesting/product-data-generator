@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, type ChangeEvent } from 'react';
+import { useState, useEffect, type ChangeEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import AppShell from '@/components/AppShell';
 import { useLiveQuery } from '@/lib/hooks';
 import { useAppStore, type Theme } from '@/lib/store';
-import { db } from '@/lib/db';
+import { db, getTotalImageSize, getImageCount } from '@/lib/db';
 import { getSyncStatus } from '@/lib/sync';
+import { formatBytes, checkStorageQuota } from '@/lib/imageUtils';
 
 interface PreferenceToggleProps {
   label: string;
@@ -55,9 +56,32 @@ export default function SettingsPage() {
 
   const [isEditingUrl, setIsEditingUrl] = useState(false);
   const [urlInput, setUrlInput] = useState(bundleUrl);
+  const [storageInfo, setStorageInfo] = useState({
+    imageSizeBytes: 0,
+    imageCount: 0,
+    quotaUsedPercent: 0,
+  });
 
   const syncStatus = useLiveQuery(() => getSyncStatus());
   const productCount = useLiveQuery(() => db.products.count());
+
+  useEffect(() => {
+    const loadStorageInfo = async () => {
+      const [totalSize, count, quota] = await Promise.all([
+        getTotalImageSize(),
+        getImageCount(),
+        checkStorageQuota(),
+      ]);
+
+      setStorageInfo({
+        imageSizeBytes: totalSize,
+        imageCount: count,
+        quotaUsedPercent: quota.percentUsed,
+      });
+    };
+
+    loadStorageInfo();
+  }, []);
 
   const handleExport = async () => {
     const data = await db.exportData();
@@ -82,7 +106,16 @@ export default function SettingsPage() {
   const handleClearData = async () => {
     if (window.confirm('Clear all local data? This cannot be undone.')) {
       await db.clearAll();
+      setStorageInfo({ imageSizeBytes: 0, imageCount: 0, quotaUsedPercent: 0 });
       alert('Data cleared');
+    }
+  };
+
+  const handleClearImages = async () => {
+    if (window.confirm('Clear all product images? Product data will remain.')) {
+      await db.productImages.clear();
+      setStorageInfo({ ...storageInfo, imageSizeBytes: 0, imageCount: 0 });
+      alert('Images cleared');
     }
   };
 
@@ -172,6 +205,61 @@ export default function SettingsPage() {
             value={hapticEnabled}
             onChange={setHapticEnabled}
           />
+        </section>
+
+        <section className="rounded-[32px] border border-white/70 bg-white/90 p-6 shadow-xl shadow-slate-200">
+          <h2 className="text-lg font-semibold text-slate-900">Image Storage</h2>
+          <p className="text-sm text-slate-500">Manage photos stored locally on your device.</p>
+
+          <div className="mt-4 grid gap-4 sm:grid-cols-3">
+            <div className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Images Stored</p>
+              <p className="mt-2 text-2xl font-semibold text-slate-900">{storageInfo.imageCount}</p>
+              <p className="text-xs text-slate-500">Product photos</p>
+            </div>
+
+            <div className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Storage Used</p>
+              <p className="mt-2 text-2xl font-semibold text-slate-900">
+                {formatBytes(storageInfo.imageSizeBytes)}
+              </p>
+              <p className="text-xs text-slate-500">For images only</p>
+            </div>
+
+            <div className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Quota Used</p>
+              <p className="mt-2 text-2xl font-semibold text-slate-900">
+                {storageInfo.quotaUsedPercent.toFixed(1)}%
+              </p>
+              <p className="text-xs text-slate-500">Device storage</p>
+            </div>
+          </div>
+
+          {storageInfo.quotaUsedPercent > 80 && (
+            <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+              <div className="flex items-start gap-3">
+                <svg className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <div>
+                  <p className="font-semibold text-amber-900">Storage Warning</p>
+                  <p className="text-sm text-amber-700 mt-1">
+                    You&apos;re using {storageInfo.quotaUsedPercent.toFixed(0)}% of device storage. Consider clearing old images to free up space.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="mt-4">
+            <button
+              onClick={handleClearImages}
+              disabled={storageInfo.imageCount === 0}
+              className="w-full rounded-2xl border border-red-200 bg-red-50 px-4 py-4 text-sm font-semibold text-red-600 shadow-inner shadow-red-100 transition hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Clear All Images ({storageInfo.imageCount})
+            </button>
+          </div>
         </section>
 
         <section className="rounded-[32px] border border-white/70 bg-white/90 p-6 shadow-xl shadow-slate-200">
