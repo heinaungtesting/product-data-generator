@@ -11,7 +11,7 @@ interface ProductThumbnailProps {
 }
 
 export default function ProductThumbnail({ productId, productName, className = '' }: ProductThumbnailProps) {
-  const [thumbnailSrc, setThumbnailSrc] = useState<string>('/images/placeholder.png');
+  const [thumbnailSrc, setThumbnailSrc] = useState<string>('/images/placeholder.svg');
   const [loading, setLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
 
@@ -27,7 +27,7 @@ export default function ProductThumbnail({ productId, productName, className = '
             setThumbnailSrc(image.thumbnailData);
             setHasError(false);
           } else {
-            setThumbnailSrc('/images/placeholder.png');
+            setThumbnailSrc('/images/placeholder.svg');
           }
         }
       } catch (error) {
@@ -52,17 +52,17 @@ export default function ProductThumbnail({ productId, productName, className = '
         src={thumbnailSrc}
         alt={productName}
         fill
-        unoptimized={!thumbnailSrc.startsWith('/')}
+        unoptimized
         sizes="(max-width: 768px) 50vw, 220px"
         className="object-cover transition duration-500 group-hover:scale-105"
         onError={() => {
           if (!hasError) {
             setHasError(true);
-            setThumbnailSrc('/images/placeholder.png');
+            setThumbnailSrc('/images/placeholder.svg');
           }
         }}
       />
-      {loading && thumbnailSrc === '/images/placeholder.png' && (
+      {loading && thumbnailSrc === '/images/placeholder.svg' && (
         <div className="absolute inset-0 bg-slate-100 animate-pulse" />
       )}
     </div>
