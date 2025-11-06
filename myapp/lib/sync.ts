@@ -6,12 +6,15 @@
 import { db, setMeta, getMeta, type Product } from './db';
 import pako from 'pako';
 
-const ENV_BUNDLE_URL =
-  process.env.SUPABASE_BUNDLE_URL ||
-  process.env.NEXT_PUBLIC_BUNDLE_URL ||
-  '';
+// Fallback bundle URL - can be overridden in settings or via environment variable
+const FALLBACK_BUNDLE_URL = 'https://hqztadklpalhrukkrppg.supabase.co/storage/v1/object/public/bundles/bundle.json.gz';
 
-const DEFAULT_BUNDLE_URL = ENV_BUNDLE_URL || '';
+const ENV_BUNDLE_URL =
+  process.env.NEXT_PUBLIC_BUNDLE_URL ||
+  process.env.SUPABASE_BUNDLE_URL ||
+  FALLBACK_BUNDLE_URL;
+
+const DEFAULT_BUNDLE_URL = ENV_BUNDLE_URL;
 
 export interface SyncResult {
   success: boolean;
@@ -81,15 +84,25 @@ export async function syncNow(): Promise<SyncResult> {
     const storedUrl = (await getMeta('bundleUrl')) as string | null;
     const bundleUrl = storedUrl || DEFAULT_BUNDLE_URL;
 
+    console.log('🔍 Bundle URL check:', {
+      storedUrl,
+      DEFAULT_BUNDLE_URL,
+      finalUrl: bundleUrl,
+      envVar: process.env.NEXT_PUBLIC_BUNDLE_URL,
+    });
+
     if (!bundleUrl) {
-      throw new Error('No bundle URL configured. Set NEXT_PUBLIC_SUPABASE_BUNDLE_URL or configure a bundle URL in settings.');
+      throw new Error('No bundle URL configured. Please check your environment variables or settings.');
     }
+
+    console.log('🔄 Starting sync from:', bundleUrl);
 
     const storedEtag = (await getMeta('lastEtag')) as string | null;
 
     const { data, newEtag, notModified } = await fetchBundle(bundleUrl, storedEtag || undefined);
 
     if (notModified) {
+      console.log('✅ Bundle unchanged (304), skipping sync');
       return {
         success: true,
         updated: false,
@@ -100,8 +113,10 @@ export async function syncNow(): Promise<SyncResult> {
 
     // Validate bundle structure
     if (!data || !data.products || !Array.isArray(data.products)) {
-      throw new Error('Invalid bundle structure');
+      throw new Error('Invalid bundle structure - missing products array');
     }
+
+    console.log(`📦 Syncing ${data.products.length} products...`);
 
     // Transform bundle products to MyApp format
     const products: Product[] = data.products.map(bundleProduct => {
@@ -156,6 +171,8 @@ export async function syncNow(): Promise<SyncResult> {
       await setMeta('schemaVersion', data.schemaVersion);
     }
 
+    console.log(`✅ Sync complete: ${products.length} products synced`);
+
     return {
       success: true,
       updated: true,
@@ -164,11 +181,24 @@ export async function syncNow(): Promise<SyncResult> {
     };
 
   } catch (error) {
-    console.error('Sync error:', error);
+    console.error('❌ Sync error:', error);
+
+    const errorMessage = error instanceof Error ? error.message : 'Unknown sync error occurred';
+
+    // Provide more helpful error messages
+    let userFriendlyError = errorMessage;
+    if (errorMessage.includes('Failed to fetch')) {
+      userFriendlyError = 'Network error: Unable to connect to server. Check your internet connection.';
+    } else if (errorMessage.includes('Invalid bundle')) {
+      userFriendlyError = 'Bundle format error: The data format is invalid or corrupted.';
+    } else if (errorMessage.includes('No bundle URL')) {
+      userFriendlyError = 'Configuration error: Bundle URL not configured.';
+    }
+
     return {
       success: false,
       updated: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: userFriendlyError,
     };
   }
 }

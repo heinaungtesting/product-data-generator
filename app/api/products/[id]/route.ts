@@ -11,7 +11,7 @@ export async function DELETE(_request: NextRequest, context: { params: Promise<{
       return NextResponse.json({ success: false, error: "Missing product id." }, { status: 400 });
     }
 
-    await prisma.$transaction(async (tx: any) => {
+    await prisma.$transaction(async (tx) => {
       await tx.product.delete({ where: { id } });
       await tx.draft.delete({ where: { productId: id } }).catch(() => undefined);
     });

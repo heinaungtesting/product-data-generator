@@ -27,7 +27,7 @@ const { GET } = await import("./route");
 
 const buildRequest = (url: string) =>
   ({
-    nextUrl: new URL(url) as any,
+    nextUrl: new URL(url),
     headers: new Headers(),
   }) as unknown as NextRequest;
 

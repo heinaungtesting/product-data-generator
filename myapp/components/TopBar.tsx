@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
-import LanguageToggle from './LanguageToggle';
 
 const NAV_ITEMS = [
   { href: '/', translationKey: 'home', fallback: 'Home' },
@@ -24,16 +23,9 @@ export default function TopBar() {
   const currentPath = normalizePath(pathname || '/');
 
   return (
-    <header className="relative z-40">
-      <div className="flex items-center justify-between gap-3 rounded-3xl bg-white/80 px-5 py-3 shadow-lg shadow-[#9f8efa1a] backdrop-blur-md">
-        <div className="font-semibold text-slate-900">
-          MyApp
-        </div>
-        <LanguageToggle />
-      </div>
-
-      <nav className="mt-4 rounded-full bg-white/70 p-1 shadow-md shadow-[#9f8efa29] backdrop-blur-sm">
-        <ul className="grid grid-cols-4 gap-1 text-sm font-semibold text-slate-500">
+    <header className="relative z-40 -mx-4 px-4">
+      <nav className="rounded-full bg-white/90 p-1.5 shadow-xl shadow-indigo-500/10 backdrop-blur-lg border border-white/50">
+        <ul className="grid grid-cols-4 gap-0.5 text-base font-bold">
           {NAV_ITEMS.map((item) => {
             const href = item.href === '/' ? '/' : item.href;
             const isActive = currentPath === href;
@@ -42,10 +34,10 @@ export default function TopBar() {
               <li key={item.href}>
                 <Link
                   href={href}
-                  className={`flex items-center justify-center rounded-full px-3 py-2 transition ${
+                  className={`flex items-center justify-center rounded-full px-4 py-3 transition-all duration-200 ${
                     isActive
-                      ? 'bg-[#a78bfa] text-white shadow-sm shadow-[#a78bfa80]'
-                      : 'hover:bg-[#ede7ff] hover:text-[#5b4bc4]'
+                      ? 'bg-indigo-50 text-indigo-600 shadow-inner'
+                      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                   }`}
                 >
                   {t(item.translationKey, { defaultValue: item.fallback })}

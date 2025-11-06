@@ -155,7 +155,7 @@ const mapProductRecord = (record: ProductRecord): Product => {
     {} as Record<(typeof LOCALIZABLE_FIELDS)[number], Record<LanguageCode, string>>,
   );
 
-  record.texts.forEach((text: any) => {
+  record.texts.forEach((text) => {
     const lang = text.language as LanguageCode;
     localized.name[lang] = text.name;
     localized.description[lang] = text.description;
@@ -164,7 +164,7 @@ const mapProductRecord = (record: ProductRecord): Product => {
     localized.goodFor[lang] = text.goodFor;
   });
 
-  const tags = record.tags.map((entry: any) => entry.tag.name);
+  const tags = record.tags.map((entry) => entry.tag.name);
 
   return productSchema.parse(
     fillPlaceholders({
@@ -287,6 +287,7 @@ export const listProducts = async (
 ) => {
   const { search, categories, tags } = options;
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const where: any = {};
 
   if (search && search.trim().length > 0) {
@@ -384,15 +385,15 @@ export const getLatestBundle = async () => {
   return bundle;
 };
 
-export const loadDraft = async (productId: string): Promise<any | null> => {
+export const loadDraft = async (productId: string): Promise<{ productId: string; blob: Prisma.JsonValue; updatedAt: Date } | null> => {
   return prisma.draft.findUnique({ where: { productId } });
 };
 
 export const saveDraft = async (productId: string, blob: unknown) => {
   await prisma.draft.upsert({
     where: { productId },
-    create: { productId, blob: blob as any, updatedAt: new Date() },
-    update: { blob: blob as any, updatedAt: new Date() },
+    create: { productId, blob: blob as Prisma.InputJsonValue, updatedAt: new Date() },
+    update: { blob: blob as Prisma.InputJsonValue, updatedAt: new Date() },
   });
 };
 
@@ -402,7 +403,7 @@ export const deleteDraft = async (productId: string) => {
 
 export const listTags = async () => {
   const tags = await prisma.tag.findMany({ orderBy: { name: "asc" } });
-  return tags.map((tag: any) => tag.name);
+  return tags.map((tag) => tag.name);
 };
 
 export const getProductCount = async () => {

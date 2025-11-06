@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, imported: 0, errors }, { status: 400 });
     }
 
-    await prisma.$transaction(async (tx: any) => {
+    await prisma.$transaction(async (tx) => {
       for (const product of products) {
         await saveProduct(product, tx);
         await tx.draft.delete({ where: { productId: product.id } }).catch(() => undefined);

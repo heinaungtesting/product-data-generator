@@ -33,24 +33,49 @@ interface ProductText {
   warnings: string | null;
 }
 
+interface PurchaseLogEntry {
+  productId: string;
+  timestamp: string;
+  [key: string]: unknown;
+}
+
 interface Bundle {
   schemaVersion: string;
   builtAt: string;
   productCount: number;
   products: Product[];
-  purchaseLog: any[];
+  purchaseLog: PurchaseLogEntry[];
+}
+
+interface DatabaseRow {
+  id: string;
+  category: string;
+  jan_code: string | null;
+  barcode: string | null;
+  product_texts?: Array<{
+    lang: string;
+    name: string;
+    description: string | null;
+    features: string | null;
+    usage: string | null;
+    ingredients: string | null;
+    warnings: string | null;
+  }>;
+  product_tags?: Array<{ tags: { id: string } }>;
+  updated_at: string;
+  synced_at: string | null;
 }
 
 /**
  * Transform database row to bundle product format
  */
-function transformProduct(row: any): Product {
+function transformProduct(row: DatabaseRow): Product {
   return {
     id: row.id,
     category: row.category,
     janCode: row.jan_code,
     barcode: row.barcode,
-    texts: row.product_texts?.map((t: any) => ({
+    texts: row.product_texts?.map((t) => ({
       lang: t.lang,
       name: t.name,
       description: t.description,
@@ -59,7 +84,7 @@ function transformProduct(row: any): Product {
       ingredients: t.ingredients,
       warnings: t.warnings,
     })) || [],
-    tags: row.product_tags?.map((pt: any) => pt.tags.id) || [],
+    tags: row.product_tags?.map((pt) => pt.tags.id) || [],
     updatedAt: row.updated_at,
     syncedAt: row.synced_at,
   };
@@ -84,7 +109,7 @@ function compressData(data: Uint8Array): Uint8Array {
   return gzip(data);
 }
 
-serve(async (req) => {
+serve(async (_req) => {
   try {
     // Initialize Supabase client with service role key
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;

@@ -3,17 +3,26 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { db, getProductImage, type Product, type ProductImage } from '@/lib/db';
-import { useAppStore } from '@/lib/store';
+import { useAppStore, type Language } from '@/lib/store';
 import ImageUpload from '@/components/ImageUpload';
+
+const LANGUAGE_FLAGS = [
+  { code: 'en' as Language, flag: '🇺🇸', label: 'EN' },
+  { code: 'zh' as Language, flag: '🇨🇳', label: 'CN' },
+  { code: 'ko' as Language, flag: '🇰🇷', label: 'KR' },
+  { code: 'th' as Language, flag: '🇹🇭', label: 'TH' },
+  { code: 'ja' as Language, flag: '🇯🇵', label: 'JP' },
+];
 
 export default function ProductDetailPage() {
   const router = useRouter();
   const params = useParams();
-  const { language } = useAppStore();
+  const { language, setLanguage } = useAppStore();
   const [product, setProduct] = useState<Product | null>(null);
   const [productImage, setProductImage] = useState<ProductImage | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
   const loadProductImage = useCallback(async (productId: string) => {
@@ -77,11 +86,6 @@ export default function ProductDetailPage() {
     );
   }
 
-  const toBullets = (text?: string) => {
-    if (!text) return [];
-    return text.split('\n').map((line) => line.trim()).filter(Boolean);
-  };
-
   const currentName = product.name[language] || product.name.ja;
   const currentDesc = product.description[language] || product.description.ja;
   const currentEffects = product.effects[language] || product.effects.ja;
@@ -114,6 +118,9 @@ export default function ProductDetailPage() {
       });
 
       setSaveStatus('success');
+
+      // Auto-dismiss success message after 3 seconds
+      setTimeout(() => setSaveStatus('idle'), 3000);
     } catch (error) {
       console.error('Error saving log:', error);
       setSaveStatus('error');
@@ -122,8 +129,30 @@ export default function ProductDetailPage() {
     }
   };
 
+  const handleDelete = async () => {
+    if (!confirm(`Delete "${currentName}"? This cannot be undone.`)) return;
+
+    setDeleting(true);
+    try {
+      await db.products.delete(product.id);
+
+      // Trigger haptic feedback
+      if ('vibrate' in navigator) {
+        navigator.vibrate(50);
+      }
+
+      // Navigate back to home
+      router.push('/');
+    } catch (error) {
+      console.error('Error deleting product:', error);
+      alert('Failed to delete product. Please try again.');
+      setDeleting(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-indigo-50 via-white to-white pb-32">
+    <div className="min-h-screen bg-gradient-to-b from-indigo-50 via-white to-white pb-48">
+      {/* Header with Back Button */}
       <div className="sticky top-0 z-20 border-b border-white/70 bg-white/80 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-5xl items-center gap-3 px-4">
           <button
@@ -135,12 +164,10 @@ export default function ProductDetailPage() {
             </svg>
             Back
           </button>
-          <span className="text-sm text-slate-500">
-            {product.category} • {product.pointValue ?? 0} pts
-          </span>
         </div>
       </div>
 
+      {/* Product Image Upload */}
       <div className="relative mx-auto mt-6 max-w-5xl px-4">
         <ImageUpload
           productId={product.id}
@@ -149,92 +176,120 @@ export default function ProductDetailPage() {
         />
       </div>
 
-      <div className="mx-auto mt-8 max-w-4xl space-y-6 px-4">
-        <div className="rounded-[32px] border border-white/70 bg-white/90 p-6 shadow-xl shadow-slate-200">
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-indigo-500">{product.category}</p>
-              <h1 className="mt-2 text-3xl font-semibold text-slate-900">{currentName}</h1>
-            </div>
-            {product.pointValue && (
-              <div className="rounded-2xl bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-700">
-                {product.pointValue} points
-              </div>
-            )}
-          </div>
-
-          <p className="mt-4 text-base leading-relaxed text-slate-600 whitespace-pre-line">{currentDesc}</p>
-
-          {product.tags?.length ? (
-            <div className="mt-4 flex flex-wrap gap-2">
-              {product.tags.map((tag) => (
-                <span key={tag} className="rounded-full bg-slate-100 px-4 py-1 text-sm font-medium text-slate-600">
-                  #{tag}
-                </span>
-              ))}
-            </div>
-          ) : null}
+      <div className="mx-auto mt-6 max-w-4xl space-y-6 px-4">
+        {/* Language Selector */}
+        <div className="flex items-center justify-center gap-2">
+          {LANGUAGE_FLAGS.map((lang) => (
+            <button
+              key={lang.code}
+              onClick={() => setLanguage(lang.code)}
+              className={`flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-bold transition-all ${
+                language === lang.code
+                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30 scale-105'
+                  : 'bg-white/80 text-slate-600 border-2 border-slate-200 hover:border-indigo-200'
+              }`}
+              aria-label={`Switch to ${lang.label}`}
+            >
+              <span className="text-lg">{lang.flag}</span>
+              <span>{lang.label}</span>
+            </button>
+          ))}
         </div>
 
+        {/* Product Info Card */}
+        <div className="rounded-[32px] border border-white/70 bg-white/95 p-6 shadow-lg shadow-indigo-500/5">
+          <h1 className="text-2xl font-bold text-slate-900 uppercase tracking-tight">
+            {currentName}
+          </h1>
+
+          <div className="mt-3 flex items-center gap-3">
+            <span className="rounded-full bg-indigo-50 px-4 py-1.5 text-xs font-bold uppercase tracking-wide text-indigo-700">
+              {product.category}
+            </span>
+            {product.tags?.length ? (
+              product.tags.map((tag) => (
+                <span key={tag} className="rounded-full bg-slate-100 px-4 py-1.5 text-xs font-medium text-slate-600">
+                  {tag}
+                </span>
+              ))
+            ) : null}
+          </div>
+        </div>
+
+        {/* Description */}
+        {currentDesc && (
+          <section className="rounded-[28px] border border-white/60 bg-white/95 p-6 shadow-lg shadow-indigo-500/5">
+            <h2 className="text-lg font-bold text-slate-900">Description</h2>
+            <p className="mt-3 text-sm leading-relaxed text-slate-600 whitespace-pre-line">{currentDesc}</p>
+          </section>
+        )}
+
+        {/* Effects */}
         {currentEffects && (
-          <section className="rounded-[28px] border border-white/60 bg-white/90 p-6 shadow-lg shadow-slate-200">
-            <h2 className="text-lg font-semibold text-slate-900">Effects</h2>
-            <ul className="mt-4 space-y-3">
-              {toBullets(currentEffects).map((effect, index) => (
-                <li key={effect + index} className="flex gap-3 text-slate-600">
-                  <span className="mt-1 h-2 w-2 rounded-full bg-indigo-500" />
-                  <span>{effect}</span>
-                </li>
-              ))}
-            </ul>
+          <section className="rounded-[28px] border border-white/60 bg-white/95 p-6 shadow-lg shadow-indigo-500/5">
+            <h2 className="text-lg font-bold text-slate-900">Effects</h2>
+            <p className="mt-3 text-sm leading-relaxed text-slate-600 whitespace-pre-line">{currentEffects}</p>
           </section>
         )}
 
+        {/* Side Effects */}
         {currentSideEffects && (
-          <section className="rounded-[28px] border border-white/60 bg-white/90 p-6 shadow-lg shadow-slate-200">
-            <h2 className="text-lg font-semibold text-slate-900">Side effects</h2>
-            <ul className="mt-4 space-y-3">
-              {toBullets(currentSideEffects).map((effect, index) => (
-                <li key={effect + index} className="flex gap-3 text-slate-600">
-                  <span className="mt-1 h-2 w-2 rounded-full bg-amber-500" />
-                  <span>{effect}</span>
-                </li>
-              ))}
-            </ul>
+          <section className="rounded-[28px] border border-white/60 bg-white/95 p-6 shadow-lg shadow-indigo-500/5">
+            <h2 className="text-lg font-bold text-slate-900">Side Effects</h2>
+            <p className="mt-3 text-sm leading-relaxed text-slate-600 whitespace-pre-line">{currentSideEffects}</p>
           </section>
         )}
 
+        {/* Good For */}
         {currentGoodFor && (
-          <section className="rounded-[28px] border border-white/60 bg-white/90 p-6 shadow-lg shadow-slate-200">
-            <h2 className="text-lg font-semibold text-slate-900">Recommended for</h2>
-            <ul className="mt-4 space-y-3">
-              {toBullets(currentGoodFor).map((entry, index) => (
-                <li key={entry + index} className="flex gap-3 text-slate-600">
-                  <span className="mt-1 h-2 w-2 rounded-full bg-emerald-500" />
-                  <span>{entry}</span>
-                </li>
-              ))}
-            </ul>
+          <section className="rounded-[28px] border border-white/60 bg-white/95 p-6 shadow-lg shadow-indigo-500/5">
+            <h2 className="text-lg font-bold text-slate-900">Good For</h2>
+            <p className="mt-3 text-sm leading-relaxed text-slate-600 whitespace-pre-line">{currentGoodFor}</p>
           </section>
         )}
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-white/60 bg-white/90 p-4 shadow-2xl shadow-[#b6a8ff33] backdrop-blur-2xl">
-        <div className="mx-auto flex max-w-4xl flex-col items-stretch gap-3 md:flex-row md:items-center">
-          <div className="flex-1 rounded-2xl bg-[#f3efff] px-4 py-3 text-sm text-[#5b4bc4] shadow-inner shadow-[#b6a8ff33]">
-            {saveStatus === 'success'
-              ? 'Saved to your calendar. Check Log or Calendar tabs to review.'
-              : saveStatus === 'error'
-              ? 'We could not save this entry. Please try again.'
-              : 'Save this product to remember when you last used it.'}
+      {/* Fixed Bottom Action Buttons */}
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-white/70 bg-white/95 p-4 shadow-2xl shadow-indigo-500/10 backdrop-blur-xl">
+        <div className="mx-auto max-w-4xl space-y-3">
+          {/* Success/Error Message */}
+          {saveStatus !== 'idle' && (
+            <div className={`rounded-2xl px-4 py-3 text-sm font-medium text-center ${
+              saveStatus === 'success'
+                ? 'bg-green-50 text-green-800 border border-green-200'
+                : 'bg-red-50 text-red-800 border border-red-200'
+            }`}>
+              {saveStatus === 'success'
+                ? '✅ Saved to log successfully!'
+                : '❌ Failed to save. Please try again.'}
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <button
+              onClick={() => {/* TODO: Navigate to edit page */}}
+              className="rounded-full bg-indigo-600 px-6 py-4 text-base font-bold text-white shadow-lg shadow-indigo-500/30 transition-all hover:bg-indigo-700 active:scale-95"
+            >
+              Edit Product
+            </button>
+
+            <button
+              onClick={handleDelete}
+              disabled={deleting}
+              className="rounded-full bg-red-500 px-6 py-4 text-base font-bold text-white shadow-lg shadow-red-500/30 transition-all hover:bg-red-600 active:scale-95 disabled:opacity-60"
+            >
+              {deleting ? 'Deleting...' : 'Delete'}
+            </button>
+
+            <button
+              onClick={handleSaveToLog}
+              disabled={saving}
+              className="rounded-full bg-indigo-600 px-6 py-4 text-base font-bold text-white shadow-lg shadow-indigo-500/30 transition-all hover:bg-indigo-700 active:scale-95 disabled:opacity-60"
+            >
+              {saving ? 'Saving...' : 'Add to log'}
+            </button>
           </div>
-          <button
-            onClick={handleSaveToLog}
-            disabled={saving}
-            className="rounded-2xl bg-[#5b4bc4] px-6 py-4 text-base font-semibold text-white shadow-xl shadow-[#5b4bc450] transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 md:min-w-[220px]"
-          >
-            {saving ? 'Saving…' : 'Save to log'}
-          </button>
         </div>
       </div>
     </div>

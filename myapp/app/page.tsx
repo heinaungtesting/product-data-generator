@@ -45,6 +45,9 @@ export default function HomePage() {
   const [searchInput, setSearchInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [compareIds, setCompareIds] = useState<string[]>(getInitialCompareIds);
+  const [syncError, setSyncError] = useState<string | null>(null);
+  const [syncSuccess, setSyncSuccess] = useState<string | null>(null);
+  const [categoryFilter, setCategoryFilter] = useState<'all' | 'health' | 'cosmetic'>('all');
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -64,24 +67,52 @@ export default function HomePage() {
 
   const products = useMemo(() => {
     if (!dbProducts) return null;
-    if (!searchQuery) return dbProducts;
 
-    const lower = searchQuery.toLowerCase();
-    return dbProducts.filter((product) =>
-      product.name[language]?.toLowerCase().includes(lower) ||
-      product.description[language]?.toLowerCase().includes(lower)
-    );
-  }, [dbProducts, language, searchQuery]);
+    let filtered = dbProducts;
+
+    // Apply category filter
+    if (categoryFilter !== 'all') {
+      filtered = filtered.filter(p => p.category === categoryFilter);
+    }
+
+    // Apply search filter
+    if (searchQuery) {
+      const lower = searchQuery.toLowerCase();
+      filtered = filtered.filter((product) =>
+        product.name[language]?.toLowerCase().includes(lower) ||
+        product.description[language]?.toLowerCase().includes(lower)
+      );
+    }
+
+    return filtered;
+  }, [dbProducts, language, searchQuery, categoryFilter]);
 
   const totalProducts = dbProducts?.length ?? 0;
 
   const handleSync = useCallback(async () => {
     setIsSyncing(true);
+    setSyncError(null);
+    setSyncSuccess(null);
+
     try {
       const result = await syncNow();
+
       if (result.success) {
         setLastSyncTime(new Date().toISOString());
+
+        if (result.updated) {
+          setSyncSuccess(`✅ Successfully synced ${result.productCount} products!`);
+        } else {
+          setSyncSuccess('✓ Already up to date!');
+        }
+
+        // Clear success message after 5 seconds
+        setTimeout(() => setSyncSuccess(null), 5000);
+      } else {
+        setSyncError(result.error || 'Sync failed');
       }
+    } catch (error) {
+      setSyncError(error instanceof Error ? error.message : 'Unexpected error occurred');
     } finally {
       setIsSyncing(false);
     }
@@ -104,7 +135,7 @@ export default function HomePage() {
     });
   }, []);
 
- 
+
 
   const lastSyncLabel = lastSyncTime
     ? new Date(lastSyncTime).toLocaleString()
@@ -113,96 +144,85 @@ export default function HomePage() {
   return (
     <AppShell>
       <div className="relative space-y-6">
-        <section className="rounded-4xl border border-white/70 bg-white/80 p-6 shadow-2xl shadow-indigo-100 backdrop-blur">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-center">
-            <div className="flex-1 space-y-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-indigo-500">
-                {t('products')}
-              </p>
-              <h1 className="text-3xl font-semibold text-slate-900 sm:text-4xl">
-                Product intelligence at a glance
-              </h1>
-              <p className="text-slate-500">
-                Search, filter, and keep your offline catalog in sync with a single tap. Designed for fast on-the-go workflows.
-              </p>
-            </div>
-
-            <div className="w-full space-y-4 lg:max-w-md">
-              <label className="flex flex-col gap-2">
-                <span className="text-xs font-semibold text-slate-500">Search</span>
-                <div className="flex h-14 items-center gap-3 rounded-2xl border border-indigo-100 bg-white px-4 shadow-inner shadow-indigo-100/70">
-                  <svg className="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                  <input
-                    type="search"
-                    value={searchInput}
-                    onChange={(e) => setSearchInput(e.target.value)}
-                    placeholder="Find supplements, cosmetics, ingredients..."
-                    className="flex-1 border-none bg-transparent text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none"
-                  />
-                </div>
-              </label>
-
-              <div className="flex flex-wrap gap-2">
-                {languageOptions.map((item) => (
-                  <button
-                    key={item.code}
-                    onClick={() => handleLanguageChange(item.code)}
-                    className={`rounded-full px-4 py-2 text-sm font-medium transition ${
-                      language === item.code
-                        ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/40'
-                        : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
-                    }`}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-
-              <button
-                onClick={handleSync}
-                disabled={isSyncing}
-                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-linear-to-r from-indigo-600 via-violet-600 to-sky-500 px-6 py-4 text-white shadow-xl shadow-indigo-500/40 transition active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {isSyncing ? 'Syncing data…' : 'Sync latest bundle'}
-                <span aria-hidden className="text-xl">↻</span>
-              </button>
-
-              <p className="text-xs text-slate-500">
-                Last synced: <span className="font-medium text-slate-700">{lastSyncLabel}</span>
-              </p>
-            </div>
+        {/* Search Section */}
+        <section className="space-y-4">
+          <div className="relative">
+            <input
+              type="search"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder="Search products"
+              className="w-full h-14 px-5 pr-12 rounded-3xl border-none bg-white/95 text-base text-slate-900 placeholder:text-slate-400 shadow-lg shadow-indigo-500/5 backdrop-blur-lg focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            />
+            <svg
+              className="absolute right-5 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
           </div>
 
-          <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {[
-              { label: 'Products', value: totalProducts, hint: 'Synced locally' },
-              { label: 'Selected', value: compareIds.length, hint: 'Compare slots used' },
-              { label: 'Languages', value: languageOptions.length, hint: 'Supported locales' },
-              { label: 'Search hits', value: products?.length ?? 0, hint: 'Matching records' },
-            ].map((stat) => (
-              <div
-                key={stat.label}
-                className="rounded-3xl border border-white/70 bg-white/90 p-4 shadow-lg shadow-slate-900/5"
-              >
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{stat.label}</p>
-                <p className="mt-2 text-3xl font-semibold text-slate-900">{stat.value}</p>
-                <p className="text-xs text-slate-500">{stat.hint}</p>
-              </div>
-            ))}
+          {/* Category Filter Pills */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-2">
+            <button
+              onClick={() => setCategoryFilter('all')}
+              className={`px-5 py-2.5 rounded-full font-bold text-sm whitespace-nowrap transition-all ${
+                categoryFilter === 'all'
+                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30 border-2 border-indigo-600'
+                  : 'bg-white/80 text-slate-600 border-2 border-slate-200'
+              }`}
+            >
+              all
+            </button>
+            <button
+              onClick={() => setCategoryFilter('health')}
+              className={`px-5 py-2.5 rounded-full font-bold text-sm whitespace-nowrap transition-all ${
+                categoryFilter === 'health'
+                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30 border-2 border-indigo-600'
+                  : 'bg-white/80 text-slate-600 border-2 border-slate-200'
+              }`}
+            >
+              Health
+            </button>
+            <button
+              onClick={() => setCategoryFilter('cosmetic')}
+              className={`px-5 py-2.5 rounded-full font-bold text-sm whitespace-nowrap transition-all ${
+                categoryFilter === 'cosmetic'
+                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30 border-2 border-indigo-600'
+                  : 'bg-white/80 text-slate-600 border-2 border-slate-200'
+              }`}
+            >
+              Cosmetic
+            </button>
           </div>
         </section>
 
+        {/* Sync Status Messages */}
+        {syncSuccess && (
+          <div className="rounded-2xl bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800 font-medium animate-in fade-in slide-in-from-top-2">
+            {syncSuccess}
+          </div>
+        )}
+
+        {syncError && (
+          <div className="rounded-2xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-800 animate-in fade-in slide-in-from-top-2">
+            <p className="font-semibold">Sync Failed</p>
+            <p className="mt-1 text-xs">{syncError}</p>
+          </div>
+        )}
+
+        {/* Product Grid */}
         <section>
           {!products ? (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2">
               {Array.from({ length: 6 }).map((_, index) => (
                 <div
                   key={index}
-                  className="rounded-[28px] border border-white/60 bg-white/70 p-4 shadow-inner shadow-slate-200 animate-pulse"
+                  className="rounded-[32px] border border-white/60 bg-white/70 p-4 shadow-inner shadow-slate-200 animate-pulse"
                 >
-                  <div className="aspect-4/3 rounded-2xl bg-slate-100" />
+                  <div className="aspect-[4/3] rounded-2xl bg-slate-100" />
                   <div className="mt-4 space-y-3">
                     <div className="h-4 rounded bg-slate-100" />
                     <div className="h-4 rounded bg-slate-100" />
@@ -212,29 +232,36 @@ export default function HomePage() {
               ))}
             </div>
           ) : products.length === 0 ? (
-            <div className="rounded-4xl border border-dashed border-indigo-200 bg-white/80 p-10 text-center shadow-md shadow-indigo-100">
+            <div className="rounded-[32px] border-2 border-dashed border-indigo-200 bg-white/80 p-10 text-center shadow-md shadow-indigo-100">
               <p className="text-lg font-semibold text-slate-900">No products match your search</p>
               <p className="mt-2 text-sm text-slate-500">
                 Try a different keyword or sync the latest bundle to refresh the catalog.
               </p>
               <button
                 onClick={handleSync}
-                className="mt-6 inline-flex items-center justify-center rounded-full bg-indigo-600 px-6 py-3 text-white shadow-lg shadow-indigo-500/30"
+                disabled={isSyncing}
+                className="mt-6 inline-flex items-center justify-center gap-2 rounded-full bg-indigo-600 px-6 py-3 text-white font-semibold shadow-lg shadow-indigo-500/30 disabled:opacity-50"
               >
-                Sync now
+                {isSyncing ? (
+                  <>
+                    <span className="inline-block animate-spin">↻</span>
+                    Syncing...
+                  </>
+                ) : (
+                  'Sync now'
+                )}
               </button>
             </div>
           ) : (
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {products.map((product, index) => (
+            <div className="grid gap-5 sm:grid-cols-2">
+              {products.map((product) => (
                 <article
                   key={product.id}
-                  className="group rounded-[30px] border border-white/70 bg-white/90 p-4 shadow-lg shadow-slate-900/5 transition hover:-translate-y-1 hover:shadow-xl"
-                  style={{ animationDelay: `${index * 40}ms` }}
+                  className="group rounded-[32px] border border-white/70 bg-white/95 p-4 shadow-lg shadow-indigo-500/5 transition-all hover:-translate-y-1 hover:shadow-xl"
                 >
                   <button
                     onClick={() => router.push(`/product/${product.id}`)}
-                    className="relative block aspect-4/3 overflow-hidden rounded-2xl bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                    className="relative block aspect-[4/3] overflow-hidden rounded-2xl bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                     aria-label={`View details for ${product.name[language] || product.name.ja}`}
                   >
                     <ProductThumbnail
@@ -245,38 +272,18 @@ export default function HomePage() {
                   </button>
 
                   <div className="mt-4 space-y-3">
-                    <div className="flex items-center justify-between text-xs uppercase tracking-wide text-slate-400">
-                      <span>{product.category}</span>
-                      {product.pointValue && (
-                        <span className="font-semibold text-indigo-600">{product.pointValue} pts</span>
-                      )}
-                    </div>
-
-                    <h3 className="text-lg font-semibold text-slate-900 line-clamp-2">
+                    <h3 className="text-lg font-bold text-slate-900">
                       {product.name[language] || product.name.ja}
                     </h3>
 
-                    <p className="text-sm text-slate-500 line-clamp-3 min-h-14">
-                      {product.description[language] || product.description.ja}
+                    <p className="text-xs text-slate-500 uppercase tracking-wide">
+                      {product.category}
                     </p>
-
-                    {product.tags?.length ? (
-                      <div className="flex flex-wrap gap-2">
-                        {product.tags.slice(0, 3).map((tag) => (
-                          <span
-                            key={tag}
-                            className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600"
-                          >
-                            #{tag}
-                          </span>
-                        ))}
-                      </div>
-                    ) : null}
 
                     <button
                       onClick={() => toggleCompare(product.id)}
                       disabled={compareIds.length >= 2 && !compareIds.includes(product.id)}
-                      className={`w-full rounded-2xl px-4 py-3 text-sm font-semibold transition ${
+                      className={`w-full rounded-2xl px-4 py-3 text-sm font-semibold transition-all ${
                         compareIds.includes(product.id)
                           ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/30'
                           : compareIds.length >= 2
@@ -284,7 +291,7 @@ export default function HomePage() {
                           : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                       }`}
                     >
-                      {compareIds.includes(product.id) ? 'Added to compare' : 'Add to compare'}
+                      {compareIds.includes(product.id) ? 'Compare' : 'Compare'}
                     </button>
                   </div>
                 </article>
@@ -293,7 +300,24 @@ export default function HomePage() {
           )}
         </section>
 
-        
+        {/* Floating Sync Button */}
+        {totalProducts > 0 && (
+          <div className="fixed bottom-6 right-6 z-50">
+            <button
+              onClick={handleSync}
+              disabled={isSyncing}
+              className="flex items-center justify-center gap-2 h-14 px-6 rounded-full bg-linear-to-r from-indigo-600 via-violet-600 to-indigo-600 text-white font-semibold shadow-2xl shadow-indigo-500/40 transition-all active:scale-95 disabled:opacity-60 hover:shadow-indigo-500/60"
+              title={`Last synced: ${lastSyncLabel}`}
+            >
+              {isSyncing ? (
+                <span className="inline-block animate-spin text-xl">↻</span>
+              ) : (
+                <span className="text-xl">↻</span>
+              )}
+              <span className="hidden sm:inline">Sync</span>
+            </button>
+          </div>
+        )}
       </div>
     </AppShell>
   );
