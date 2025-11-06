@@ -20,16 +20,6 @@ const languageOptions: { code: Language; label: string }[] = [
   { code: 'ko', label: '한국어' },
 ];
 
-function getInitialCompareIds(): string[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const saved = sessionStorage.getItem('compare');
-    return saved ? JSON.parse(saved) : [];
-  } catch {
-    return [];
-  }
-}
-
 export default function HomePage() {
   const router = useRouter();
   const { t, i18n } = useTranslation();
@@ -44,10 +34,10 @@ export default function HomePage() {
 
   const [searchInput, setSearchInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [compareIds, setCompareIds] = useState<string[]>(getInitialCompareIds);
   const [syncError, setSyncError] = useState<string | null>(null);
   const [syncSuccess, setSyncSuccess] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<'all' | 'health' | 'cosmetic'>('all');
+  const [savingProductId, setSavingProductId] = useState<string | null>(null);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -55,10 +45,6 @@ export default function HomePage() {
     }, 250);
     return () => window.clearTimeout(timeout);
   }, [searchInput]);
-
-  useEffect(() => {
-    sessionStorage.setItem('compare', JSON.stringify(compareIds));
-  }, [compareIds]);
 
   const dbProducts = useLiveQuery(
     async () => db.products.orderBy('updatedAt').reverse().toArray(),
@@ -123,17 +109,33 @@ export default function HomePage() {
     i18n.changeLanguage(code);
   };
 
-  const toggleCompare = useCallback((id: string) => {
-    setCompareIds((prev) => {
-      if (prev.includes(id)) {
-        return prev.filter((item) => item !== id);
+  const handleSaveToLog = useCallback(async (product: { id: string; name: Record<string, string>; category: string; pointValue?: number }) => {
+    setSavingProductId(product.id);
+
+    const timestamp = new Date().toISOString();
+    const entry = {
+      productId: product.id,
+      productName: product.name[language] || product.name.ja || 'Unknown',
+      category: product.category,
+      timestamp,
+      points: product.pointValue ?? 0,
+    };
+
+    try {
+      await db.logs.add(entry);
+
+      // Trigger haptic feedback
+      if ('vibrate' in navigator) {
+        navigator.vibrate(50);
       }
-      if (prev.length >= 2) {
-        return prev;
-      }
-      return [...prev, id];
-    });
-  }, []);
+
+      // Show success feedback briefly
+      setTimeout(() => setSavingProductId(null), 1500);
+    } catch (error) {
+      console.error('Error saving log:', error);
+      setSavingProductId(null);
+    }
+  }, [language]);
 
 
 
@@ -281,17 +283,18 @@ export default function HomePage() {
                     </p>
 
                     <button
-                      onClick={() => toggleCompare(product.id)}
-                      disabled={compareIds.length >= 2 && !compareIds.includes(product.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleSaveToLog(product);
+                      }}
+                      disabled={savingProductId === product.id}
                       className={`w-full rounded-2xl px-4 py-3 text-sm font-semibold transition-all ${
-                        compareIds.includes(product.id)
-                          ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/30'
-                          : compareIds.length >= 2
-                          ? 'bg-slate-100 text-slate-400'
-                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                        savingProductId === product.id
+                          ? 'bg-green-500 text-white shadow-lg shadow-green-500/30'
+                          : 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30 hover:bg-indigo-700 active:scale-95'
                       }`}
                     >
-                      {compareIds.includes(product.id) ? 'Compare' : 'Compare'}
+                      {savingProductId === product.id ? '✓ Saved!' : 'Save to log'}
                     </button>
                   </div>
                 </article>
