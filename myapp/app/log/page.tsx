@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { format } from 'date-fns';
 import { parseISO } from 'date-fns/parseISO';
 import AppShell from '@/components/AppShell';
@@ -13,22 +13,60 @@ export default function LogPage() {
     return items;
   }, []);
 
+  // Group logs by product ID and calculate counts
+  const groupedLogs = useMemo(() => {
+    if (!logs) return null;
+
+    const groups = new Map<string, { entries: LogEntry[]; count: number; totalPoints: number; latestEntry: LogEntry }>();
+
+    logs.forEach((entry) => {
+      const key = entry.productId || 'unknown';
+      const existing = groups.get(key);
+
+      if (existing) {
+        existing.entries.push(entry);
+        existing.count++;
+        existing.totalPoints += entry.points || 0;
+        if (entry.timestamp > existing.latestEntry.timestamp) {
+          existing.latestEntry = entry;
+        }
+      } else {
+        groups.set(key, {
+          entries: [entry],
+          count: 1,
+          totalPoints: entry.points || 0,
+          latestEntry: entry,
+        });
+      }
+    });
+
+    return Array.from(groups.values()).sort((a, b) =>
+      b.latestEntry.timestamp.localeCompare(a.latestEntry.timestamp)
+    );
+  }, [logs]);
+
   return (
     <AppShell>
       <div className="space-y-6">
-        {!logs ? (
+        {!groupedLogs ? (
           <LogSkeleton />
-        ) : logs.length === 0 ? (
+        ) : groupedLogs.length === 0 ? (
           <div className="rounded-[32px] border-2 border-dashed border-indigo-200 bg-white/70 p-10 text-center shadow-inner">
             <h2 className="text-lg font-semibold text-slate-800">No log entries yet</h2>
             <p className="mt-2 text-sm text-slate-500">
-              Save products from the detail page to start building your history.
+              Save products from the home page to start building your history.
             </p>
           </div>
         ) : (
           <ul className="space-y-3">
-            {logs.map((entry) => (
-              <LogCard key={entry.id ?? entry.timestamp} entry={entry} />
+            {groupedLogs.map((group) => (
+              <LogCard
+                key={group.latestEntry.id ?? group.latestEntry.timestamp}
+                entry={group.latestEntry}
+                count={group.count}
+                totalPoints={group.totalPoints}
+                entries={group.entries}
+              />
             ))}
           </ul>
         )}
@@ -37,14 +75,34 @@ export default function LogPage() {
   );
 }
 
-function LogCard({ entry }: { entry: LogEntry }) {
+function LogCard({
+  entry,
+  count,
+  totalPoints,
+  entries
+}: {
+  entry: LogEntry;
+  count: number;
+  totalPoints: number;
+  entries: LogEntry[];
+}) {
   const [isDeleting, setIsDeleting] = useState(false);
 
   const handleDelete = async () => {
-    if (entry.id === undefined) return;
+    if (!entries.length) return;
+
+    // Confirm deletion - different message for single vs multiple entries
+    const confirmMessage = count > 1
+      ? `Delete all ${count} entries of "${entry.productName}"? This cannot be undone.`
+      : `Delete "${entry.productName}"? This cannot be undone.`;
+
+    if (!confirm(confirmMessage)) return;
+
     setIsDeleting(true);
     try {
-      await db.logs.delete(entry.id);
+      // Delete all entries for this product
+      const idsToDelete = entries.map(e => e.id).filter((id): id is number => id !== undefined);
+      await db.logs.bulkDelete(idsToDelete);
     } finally {
       setIsDeleting(false);
     }
@@ -61,7 +119,7 @@ function LogCard({ entry }: { entry: LogEntry }) {
           </p>
           <p className="text-sm text-slate-500">{displayDate}</p>
           <p className="text-sm font-medium text-slate-600">
-            {entry.points} Points
+            {count > 1 ? `${totalPoints} Points (×${count})` : `${entry.points} Points`}
           </p>
         </div>
         <button

@@ -5,6 +5,11 @@ const nextConfig: NextConfig = {
   output: 'standalone',
   poweredByHeader: false,
 
+  images: {
+    unoptimized: true,
+    remotePatterns: [],
+  },
+
   webpack: (config, { isServer }) => {
     if (!isServer) {
       // Service worker support
