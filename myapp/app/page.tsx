@@ -113,9 +113,21 @@ export default function HomePage() {
     setSavingProductId(product.id);
 
     const timestamp = new Date().toISOString();
+
+    // Debug: Log product name resolution
+    const productName = product.name[language] || product.name.ja || 'Unknown';
+    console.log('💾 Saving product to log:', {
+      productId: product.id,
+      language,
+      nameForLanguage: product.name[language],
+      nameJa: product.name.ja,
+      finalName: productName,
+      allNames: product.name,
+    });
+
     const entry = {
       productId: product.id,
-      productName: product.name[language] || product.name.ja || 'Unknown',
+      productName,
       category: product.category,
       timestamp,
       points: product.pointValue ?? 0,
