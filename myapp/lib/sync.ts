@@ -24,21 +24,31 @@ export interface SyncResult {
   etag?: string;
 }
 
+type RawTextEntry = {
+  language?: string;
+  lang?: string;
+  name?: string;
+  description?: string;
+  effects?: string;
+  sideEffects?: string;
+  side_effects?: string;
+  goodFor?: string;
+  good_for?: string;
+};
+
+type RawTagEntry = string | { id?: string } | { tag_id?: string } | null | undefined;
+
 interface BundleProduct {
   id: string;
   category: 'health' | 'cosmetic';
-  pointValue: number;
-  texts: Array<{
-    language: string;
-    name: string;
-    description: string;
-    effects: string;
-    sideEffects: string;
-    goodFor: string;
-  }>;
-  tags: string[];
-  createdAt: string;
-  updatedAt: string;
+  pointValue?: number;
+  point_value?: number;
+  texts?: RawTextEntry[];
+  tags?: RawTagEntry[];
+  createdAt?: string;
+  created_at?: string;
+  updatedAt?: string;
+  updated_at?: string;
 }
 
 interface BundleData {
@@ -120,6 +130,7 @@ export async function syncNow(): Promise<SyncResult> {
 
     // Transform bundle products to MyApp format
     const products: Product[] = data.products.map(bundleProduct => {
+      const texts = bundleProduct.texts ?? [];
       // Convert texts array to language-keyed objects
       const name: Record<string, string> = {};
       const description: Record<string, string> = {};
@@ -127,25 +138,58 @@ export async function syncNow(): Promise<SyncResult> {
       const sideEffects: Record<string, string> = {};
       const goodFor: Record<string, string> = {};
 
-      bundleProduct.texts.forEach(text => {
-        name[text.language] = text.name;
-        description[text.language] = text.description;
-        effects[text.language] = text.effects;
-        sideEffects[text.language] = text.sideEffects;
-        goodFor[text.language] = text.goodFor;
+      texts.forEach(text => {
+        const languageKey = text.language || text.lang || 'en';
+
+        if (text.name) {
+          name[languageKey] = text.name;
+        }
+        if (text.description) {
+          description[languageKey] = text.description;
+        }
+        if (text.effects) {
+          effects[languageKey] = text.effects;
+        }
+        if (text.sideEffects || text.side_effects) {
+          sideEffects[languageKey] = text.sideEffects ?? text.side_effects ?? '';
+        }
+        if (text.goodFor || text.good_for) {
+          goodFor[languageKey] = text.goodFor ?? text.good_for ?? '';
+        }
       });
+
+      const tags =
+        (bundleProduct.tags ?? [])
+          .map(tag => {
+            if (!tag) return null;
+            if (typeof tag === 'string') return tag;
+            if ('id' in tag && tag.id) return tag.id;
+            if ('tag_id' in tag && tag.tag_id) return tag.tag_id;
+            return null;
+          })
+          .filter((tag): tag is string => Boolean(tag)) ?? [];
+
+      const derivedPoint =
+        typeof bundleProduct.pointValue === 'number'
+          ? bundleProduct.pointValue
+          : typeof bundleProduct.point_value === 'number'
+          ? bundleProduct.point_value
+          : (() => {
+              const match = String(bundleProduct.id).match(/(\d+)(?!.*\d)/);
+              return match ? Number(match[1]) : null;
+            })() ?? 0;
 
       return {
         id: bundleProduct.id,
         category: bundleProduct.category,
-        pointValue: bundleProduct.pointValue,
+        pointValue: derivedPoint,
         name,
         description,
         effects,
         sideEffects,
         goodFor,
-        tags: bundleProduct.tags,
-        updatedAt: bundleProduct.updatedAt,
+        tags,
+        updatedAt: bundleProduct.updatedAt ?? bundleProduct.updated_at ?? new Date().toISOString(),
       };
     });
 

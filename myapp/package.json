@@ -7,11 +7,16 @@
     "build": "next build",
     "start": "next start -p 3001",
     "lint": "next lint",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "mcp": "tsx mcp-server.ts",
+    "analyze": "ANALYZE=true next build",
+    "lighthouse": "npm run build && npm run start & sleep 5 && lighthouse http://localhost:3001 --view",
+    "bundle-size": "next build && npx @next/bundle-analyzer"
   },
   "dependencies": {
     "date-fns": "^4.1.0",
     "dexie": "^4.0.1",
+    "googleapis": "^166.0.0",
     "i18next": "^24.0.0",
     "i18next-browser-languagedetector": "^8.0.0",
     "idb": "^8.0.1",
@@ -26,6 +31,8 @@
     "zustand": "^5.0.2"
   },
   "devDependencies": {
+    "@modelcontextprotocol/sdk": "^1.21.0",
+    "@supabase/supabase-js": "^2.79.0",
     "@types/date-fns": "^2.5.3",
     "@types/node": "^22",
     "@types/pako": "^2.0.3",
@@ -34,6 +41,7 @@
     "autoprefixer": "^10.4.20",
     "postcss": "^8.4.35",
     "tailwindcss": "^3.4.1",
+    "tsx": "^4.20.6",
     "typescript": "^5.7",
     "workbox-precaching": "^7.1.0",
     "workbox-routing": "^7.1.0",

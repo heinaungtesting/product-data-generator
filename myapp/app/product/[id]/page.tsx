@@ -1,10 +1,9 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { db, getProductImage, type Product, type ProductImage } from '@/lib/db';
+import { db, type Product } from '@/lib/db';
 import { useAppStore, type Language } from '@/lib/store';
-import ImageUpload from '@/components/ImageUpload';
 
 const LANGUAGE_FLAGS = [
   { code: 'en' as Language, flag: '🇺🇸', label: 'EN' },
@@ -19,20 +18,10 @@ export default function ProductDetailPage() {
   const params = useParams();
   const { language, setLanguage } = useAppStore();
   const [product, setProduct] = useState<Product | null>(null);
-  const [productImage, setProductImage] = useState<ProductImage | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
-
-  const loadProductImage = useCallback(async (productId: string) => {
-    try {
-      const image = await getProductImage(productId);
-      setProductImage(image);
-    } catch (error) {
-      console.error('Error loading product image:', error);
-    }
-  }, []);
 
   useEffect(() => {
     const loadProduct = async () => {
@@ -40,10 +29,6 @@ export default function ProductDetailPage() {
       try {
         const dbProduct = await db.products.get(id);
         setProduct(dbProduct || null);
-
-        if (dbProduct) {
-          await loadProductImage(dbProduct.id);
-        }
       } catch (error) {
         console.error('Error loading product:', error);
         setProduct(null);
@@ -52,35 +37,36 @@ export default function ProductDetailPage() {
     };
 
     loadProduct();
-  }, [params.id, loadProductImage]);
+  }, [params.id]);
 
   useEffect(() => {
     setSaveStatus('idle');
   }, [product?.id]);
 
-  const handleImageChange = useCallback(() => {
-    if (product) {
-      loadProductImage(product.id);
-    }
-  }, [product, loadProductImage]);
-
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-indigo-50 via-white to-white">
-        <div className="h-16 w-16 animate-spin rounded-full border-4 border-indigo-500 border-t-transparent" />
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-brand-50 via-accent-50/30 to-white">
+        <div className="relative">
+          <div className="h-20 w-20 animate-spin rounded-full border-4 border-brand-200 border-t-brand-600" />
+          <div className="absolute inset-0 h-20 w-20 animate-ping rounded-full border-4 border-brand-300 opacity-20" />
+        </div>
       </div>
     );
   }
 
   if (!product) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-gradient-to-b from-indigo-50 via-white to-white p-4 text-center">
-        <p className="text-lg font-semibold text-slate-600">Product not found</p>
+      <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-gradient-to-br from-brand-50 via-accent-50/30 to-white p-6 text-center animate-scale-in">
+        <div className="text-7xl animate-float">📦</div>
+        <div className="space-y-3">
+          <h2 className="text-2xl font-bold text-slate-900">Product not found</h2>
+          <p className="text-slate-600">This product doesn't exist or has been removed.</p>
+        </div>
         <button
           onClick={() => router.push('/')}
-          className="rounded-full bg-indigo-600 px-6 py-3 text-white shadow-lg shadow-indigo-400/50 transition hover:-translate-y-0.5"
+          className="btn-primary px-8 py-4 shadow-brand-lg"
         >
-          Back to library
+          ← Back to Library
         </button>
       </div>
     );
@@ -108,7 +94,6 @@ export default function ProductDetailPage() {
     try {
       await db.logs.add(entry);
 
-      // Fire-and-forget: send to API if configured
       void fetch('/api/logs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -117,14 +102,18 @@ export default function ProductDetailPage() {
         console.warn('Background log sync failed', error);
       });
 
+      if ('vibrate' in navigator) {
+        navigator.vibrate(50);
+      }
+
       setSaveStatus('success');
 
-      // Auto-dismiss success message after 3 seconds
-      setTimeout(() => setSaveStatus('idle'), 3000);
+      setTimeout(() => {
+        router.push('/');
+      }, 800);
     } catch (error) {
       console.error('Error saving log:', error);
       setSaveStatus('error');
-    } finally {
       setSaving(false);
     }
   };
@@ -136,12 +125,10 @@ export default function ProductDetailPage() {
     try {
       await db.products.delete(product.id);
 
-      // Trigger haptic feedback
       if ('vibrate' in navigator) {
         navigator.vibrate(50);
       }
 
-      // Navigate back to home
       router.push('/');
     } catch (error) {
       console.error('Error deleting product:', error);
@@ -150,43 +137,58 @@ export default function ProductDetailPage() {
     }
   };
 
+  const initials = currentName
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((word) => word[0]?.toUpperCase() ?? '')
+    .join('') || 'P';
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-indigo-50 via-white to-white pb-48">
+    <div className="min-h-screen bg-gradient-to-br from-brand-50 via-accent-50/30 to-white pb-48 animate-fade-in">
       {/* Header with Back Button */}
-      <div className="sticky top-0 z-20 border-b border-white/70 bg-white/80 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-5xl items-center gap-3 px-4">
+      <div className="sticky top-0 z-20 glass-strong border-b border-white/70 backdrop-blur-2xl shadow-soft animate-slide-down">
+        <div className="mx-auto flex h-18 max-w-5xl items-center gap-4 px-6">
           <button
             onClick={() => router.push('/')}
-            className="flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:-translate-y-0.5 hover:border-indigo-200 hover:text-indigo-600"
+            className="group flex items-center gap-2 rounded-full glass px-5 py-2.5 text-sm font-bold text-slate-700 transition-all duration-300 hover:scale-105 hover:shadow-soft active:scale-95 focus-ring"
           >
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            <svg className="h-5 w-5 transition-transform duration-300 group-hover:-translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
             </svg>
-            Back
+            <span>Back</span>
           </button>
         </div>
       </div>
 
-      {/* Product Image Upload */}
-      <div className="relative mx-auto mt-6 max-w-5xl px-4">
-        <ImageUpload
-          productId={product.id}
-          currentImage={productImage}
-          onImageChange={handleImageChange}
-        />
+      {/* Product Hero Section */}
+      <div className="relative mx-auto mt-8 max-w-5xl px-6 animate-scale-in">
+        <div className="relative overflow-hidden rounded-5xl glass-strong p-8 shadow-brand-lg">
+          {/* Decorative Background Gradient */}
+          <div className="absolute inset-0 bg-gradient-mesh from-brand-100 via-accent-100 to-brand-200 opacity-30" />
+
+          <div className="relative flex items-center justify-center aspect-[4/3] max-h-96">
+            <div className="text-center space-y-4">
+              <div className="inline-flex items-center justify-center w-32 h-32 rounded-full bg-gradient-brand shadow-brand-lg">
+                <span className="text-6xl font-black text-white drop-shadow-lg">{initials}</span>
+              </div>
+              <p className="text-sm text-slate-500 font-medium">Product Preview</p>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div className="mx-auto mt-6 max-w-4xl space-y-6 px-4">
+      <div className="mx-auto mt-8 max-w-4xl space-y-6 px-6">
         {/* Language Selector */}
-        <div className="flex items-center justify-center gap-2">
+        <div className="flex items-center justify-center gap-2.5 animate-scale-in" style={{ animationDelay: '0.1s' }}>
           {LANGUAGE_FLAGS.map((lang) => (
             <button
               key={lang.code}
               onClick={() => setLanguage(lang.code)}
-              className={`flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-bold transition-all ${
+              className={`group flex items-center gap-2 rounded-full px-5 py-3 text-sm font-bold transition-all duration-300 focus-ring ${
                 language === lang.code
-                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30 scale-105'
-                  : 'bg-white/80 text-slate-600 border-2 border-slate-200 hover:border-indigo-200'
+                  ? 'bg-gradient-brand text-white shadow-brand scale-110'
+                  : 'glass text-slate-700 hover:bg-white hover:scale-105 active:scale-95 shadow-soft'
               }`}
               aria-label={`Switch to ${lang.label}`}
             >
@@ -197,71 +199,113 @@ export default function ProductDetailPage() {
         </div>
 
         {/* Product Info Card */}
-        <div className="rounded-[32px] border border-white/70 bg-white/95 p-6 shadow-lg shadow-indigo-500/5">
-          <h1 className="text-2xl font-bold text-slate-900 uppercase tracking-tight">
-            {currentName}
-          </h1>
+        <div className="card rounded-5xl p-8 shadow-brand-lg animate-scale-in" style={{ animationDelay: '0.15s' }}>
+          <div className="space-y-4">
+            <h1 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight leading-tight">
+              {currentName}
+            </h1>
 
-          <div className="mt-3 flex items-center gap-3">
-            <span className="rounded-full bg-indigo-50 px-4 py-1.5 text-xs font-bold uppercase tracking-wide text-indigo-700">
-              {product.category}
-            </span>
-            {product.tags?.length ? (
-              product.tags.map((tag) => (
-                <span key={tag} className="rounded-full bg-slate-100 px-4 py-1.5 text-xs font-medium text-slate-600">
-                  {tag}
+            <div className="flex flex-wrap items-center gap-3">
+              <span className={`badge px-5 py-2 text-sm ${
+                product.category === 'health'
+                  ? 'bg-gradient-to-r from-emerald-100 to-green-100 text-emerald-700 border border-emerald-200'
+                  : 'bg-gradient-to-r from-pink-100 to-rose-100 text-pink-700 border border-pink-200'
+              }`}>
+                {product.category === 'health' ? '💊 Health' : '💄 Cosmetic'}
+              </span>
+
+              {product.pointValue !== undefined && (
+                <span className="badge px-5 py-2 text-sm bg-gradient-to-r from-brand-100 to-accent-100 text-brand-700 border border-brand-200">
+                  ⭐ {product.pointValue} Points
                 </span>
-              ))
-            ) : null}
+              )}
+            </div>
+
+            {product.tags && product.tags.length > 0 && (
+              <div className="flex flex-wrap gap-2 pt-2">
+                {product.tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
         {/* Description */}
         {currentDesc && (
-          <section className="rounded-[28px] border border-white/60 bg-white/95 p-6 shadow-lg shadow-indigo-500/5">
-            <h2 className="text-lg font-bold text-slate-900">Description</h2>
-            <p className="mt-3 text-sm leading-relaxed text-slate-600 whitespace-pre-line">{currentDesc}</p>
+          <section className="card rounded-4xl p-7 shadow-soft-lg animate-scale-in" style={{ animationDelay: '0.2s' }}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-brand shadow-brand">
+                <span className="text-lg">📝</span>
+              </div>
+              <h2 className="text-xl font-bold text-slate-900">Description</h2>
+            </div>
+            <p className="text-base leading-relaxed text-slate-700 whitespace-pre-line">{currentDesc}</p>
           </section>
         )}
 
         {/* Effects */}
         {currentEffects && (
-          <section className="rounded-[28px] border border-white/60 bg-white/95 p-6 shadow-lg shadow-indigo-500/5">
-            <h2 className="text-lg font-bold text-slate-900">Effects</h2>
-            <p className="mt-3 text-sm leading-relaxed text-slate-600 whitespace-pre-line">{currentEffects}</p>
+          <section className="card rounded-4xl p-7 shadow-soft-lg animate-scale-in" style={{ animationDelay: '0.25s' }}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-green-100 to-emerald-100 shadow-soft">
+                <span className="text-lg">✨</span>
+              </div>
+              <h2 className="text-xl font-bold text-slate-900">Effects</h2>
+            </div>
+            <p className="text-base leading-relaxed text-slate-700 whitespace-pre-line">{currentEffects}</p>
           </section>
         )}
 
         {/* Side Effects */}
         {currentSideEffects && (
-          <section className="rounded-[28px] border border-white/60 bg-white/95 p-6 shadow-lg shadow-indigo-500/5">
-            <h2 className="text-lg font-bold text-slate-900">Side Effects</h2>
-            <p className="mt-3 text-sm leading-relaxed text-slate-600 whitespace-pre-line">{currentSideEffects}</p>
+          <section className="card rounded-4xl p-7 shadow-soft-lg animate-scale-in" style={{ animationDelay: '0.3s' }}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-100 to-yellow-100 shadow-soft">
+                <span className="text-lg">⚠️</span>
+              </div>
+              <h2 className="text-xl font-bold text-slate-900">Side Effects</h2>
+            </div>
+            <p className="text-base leading-relaxed text-slate-700 whitespace-pre-line">{currentSideEffects}</p>
           </section>
         )}
 
         {/* Good For */}
         {currentGoodFor && (
-          <section className="rounded-[28px] border border-white/60 bg-white/95 p-6 shadow-lg shadow-indigo-500/5">
-            <h2 className="text-lg font-bold text-slate-900">Good For</h2>
-            <p className="mt-3 text-sm leading-relaxed text-slate-600 whitespace-pre-line">{currentGoodFor}</p>
+          <section className="card rounded-4xl p-7 shadow-soft-lg animate-scale-in" style={{ animationDelay: '0.35s' }}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-100 to-indigo-100 shadow-soft">
+                <span className="text-lg">💡</span>
+              </div>
+              <h2 className="text-xl font-bold text-slate-900">Good For</h2>
+            </div>
+            <p className="text-base leading-relaxed text-slate-700 whitespace-pre-line">{currentGoodFor}</p>
           </section>
         )}
       </div>
 
       {/* Fixed Bottom Action Buttons */}
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-white/70 bg-white/95 p-4 shadow-2xl shadow-indigo-500/10 backdrop-blur-xl">
-        <div className="mx-auto max-w-4xl space-y-3">
+      <div className="fixed inset-x-0 bottom-0 z-30 glass-strong border-t border-white/70 p-6 shadow-brand-lg backdrop-blur-2xl animate-slide-up">
+        <div className="mx-auto max-w-4xl space-y-4">
           {/* Success/Error Message */}
           {saveStatus !== 'idle' && (
-            <div className={`rounded-2xl px-4 py-3 text-sm font-medium text-center ${
+            <div className={`card rounded-3xl px-5 py-4 text-center animate-slide-down ${
               saveStatus === 'success'
-                ? 'bg-green-50 text-green-800 border border-green-200'
-                : 'bg-red-50 text-red-800 border border-red-200'
+                ? 'bg-gradient-to-br from-emerald-50 to-green-50 border-emerald-200'
+                : 'bg-gradient-to-br from-red-50 to-rose-50 border-red-200'
             }`}>
-              {saveStatus === 'success'
-                ? '✅ Saved to log successfully!'
-                : '❌ Failed to save. Please try again.'}
+              <p className={`text-sm font-bold ${
+                saveStatus === 'success' ? 'text-emerald-800' : 'text-red-800'
+              }`}>
+                {saveStatus === 'success'
+                  ? '✅ Saved to log successfully!'
+                  : '❌ Failed to save. Please try again.'}
+              </p>
             </div>
           )}
 
@@ -269,25 +313,51 @@ export default function ProductDetailPage() {
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <button
               onClick={() => {/* TODO: Navigate to edit page */}}
-              className="rounded-full bg-indigo-600 px-6 py-4 text-base font-bold text-white shadow-lg shadow-indigo-500/30 transition-all hover:bg-indigo-700 active:scale-95"
+              className="btn-secondary py-4 text-base shadow-soft-lg"
+              aria-label="Edit product details"
             >
-              Edit Product
+              <span className="inline-flex items-center gap-2">
+                <span className="text-lg">✏️</span>
+                <span>Edit Product</span>
+              </span>
             </button>
 
             <button
               onClick={handleDelete}
               disabled={deleting}
-              className="rounded-full bg-red-500 px-6 py-4 text-base font-bold text-white shadow-lg shadow-red-500/30 transition-all hover:bg-red-600 active:scale-95 disabled:opacity-60"
+              className="rounded-full px-6 py-4 text-base font-bold bg-gradient-to-r from-red-500 to-rose-500 text-white shadow-accent transition-all duration-300 hover:shadow-accent hover:scale-105 active:scale-95 disabled:opacity-60 focus-ring"
+              aria-label="Delete product permanently"
             >
-              {deleting ? 'Deleting...' : 'Delete'}
+              {deleting ? (
+                <span className="inline-flex items-center gap-2">
+                  <span className="inline-block animate-spin">↻</span>
+                  Deleting...
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-2">
+                  <span className="text-lg">🗑️</span>
+                  Delete
+                </span>
+              )}
             </button>
 
             <button
               onClick={handleSaveToLog}
               disabled={saving}
-              className="rounded-full bg-indigo-600 px-6 py-4 text-base font-bold text-white shadow-lg shadow-indigo-500/30 transition-all hover:bg-indigo-700 active:scale-95 disabled:opacity-60"
+              className="btn-primary py-4 text-base shadow-brand-lg"
+              aria-label="Save product to usage log"
             >
-              {saving ? 'Saving...' : 'Add to log'}
+              {saving ? (
+                <span className="inline-flex items-center gap-2">
+                  <span className="inline-block animate-spin">↻</span>
+                  Saving...
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-2">
+                  <span className="text-lg">📝</span>
+                  Add to Log
+                </span>
+              )}
             </button>
           </div>
         </div>

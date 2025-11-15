@@ -41,7 +41,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
     tools: [
       {
-        name: 'product.add',
+        name: 'product-add',
         description: 'Add a new product to the Supabase database (auto-triggers bundle generation)',
         inputSchema: {
           type: 'object',
@@ -58,6 +58,10 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               type: 'string',
               description: 'JAN barcode (optional)',
             },
+            pointValue: {
+              type: 'number',
+              description: 'Point value for the product (optional)',
+            },
             name: {
               type: 'string',
               description: 'Product name',
@@ -65,6 +69,18 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             description: {
               type: 'string',
               description: 'Product description (optional)',
+            },
+            effects: {
+              type: 'string',
+              description: 'Product effects (optional)',
+            },
+            sideEffects: {
+              type: 'string',
+              description: 'Product side effects (optional)',
+            },
+            goodFor: {
+              type: 'string',
+              description: 'Who this product is good for (optional)',
             },
             lang: {
               type: 'string',
@@ -98,7 +114,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
       },
       {
-        name: 'product.list',
+        name: 'product-list',
         description: 'List all products from Supabase',
         inputSchema: {
           type: 'object',
@@ -116,8 +132,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
       },
       {
-        name: 'product.update',
-        description: 'Update an existing product (auto-triggers bundle regeneration)',
+        name: 'product-update',
+        description: 'Update an existing product and its text content for any language (auto-triggers bundle regeneration)',
         inputSchema: {
           type: 'object',
           properties: {
@@ -133,25 +149,58 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               type: 'string',
               description: 'New JAN code (optional)',
             },
-            name: {
-              type: 'string',
-              description: 'New name (optional)',
-            },
-            description: {
-              type: 'string',
-              description: 'New description (optional)',
+            pointValue: {
+              type: 'number',
+              description: 'Point value for the product (optional)',
             },
             lang: {
               type: 'string',
-              description: 'Language code for text update (default: "en")',
+              description: 'Language code for text update (e.g., "en", "ja", "zh")',
               default: 'en',
             },
+            name: {
+              type: 'string',
+              description: 'Product name (optional)',
+            },
+            description: {
+              type: 'string',
+              description: 'Product description (optional)',
+            },
+            effects: {
+              type: 'string',
+              description: 'Product effects (optional)',
+            },
+            sideEffects: {
+              type: 'string',
+              description: 'Product side effects (optional)',
+            },
+            goodFor: {
+              type: 'string',
+              description: 'Who this product is good for (optional)',
+            },
+            features: {
+              type: 'array',
+              description: 'Product features as array (optional)',
+              items: { type: 'string' },
+            },
+            usage: {
+              type: 'string',
+              description: 'Usage instructions (optional)',
+            },
+            ingredients: {
+              type: 'string',
+              description: 'Ingredients list (optional)',
+            },
+            warnings: {
+              type: 'string',
+              description: 'Warnings or precautions (optional)',
+            },
           },
-          required: ['id'],
+          required: ['id', 'lang'],
         },
       },
       {
-        name: 'product.delete',
+        name: 'product-delete',
         description: 'Delete a product (auto-triggers bundle regeneration)',
         inputSchema: {
           type: 'object',
@@ -165,7 +214,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
       },
       {
-        name: 'bundle.generate',
+        name: 'bundle-generate',
         description: 'Manually trigger bundle generation (usually automatic)',
         inputSchema: {
           type: 'object',
@@ -173,7 +222,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
       },
       {
-        name: 'bundle.status',
+        name: 'bundle-status',
         description: 'Get current bundle status and metadata',
         inputSchema: {
           type: 'object',
@@ -190,13 +239,17 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
   try {
     switch (name) {
-      case 'product.add': {
+      case 'product-add': {
         const {
           id,
           category,
           janCode,
+          pointValue,
           name: productName,
           description,
+          effects,
+          sideEffects,
+          goodFor,
           lang = 'en',
           tags = [],
           features,
@@ -213,6 +266,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             category,
             jan_code: janCode || null,
             barcode: janCode || null,
+            point_value: pointValue || null,
           })
           .select()
           .single();
@@ -229,6 +283,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             lang,
             name: productName,
             description: description || null,
+            effects: effects || null,
+            side_effects: sideEffects || null,
+            good_for: goodFor || null,
             features: features ? JSON.stringify(features) : null,
             usage: usage || null,
             ingredients: ingredients || null,
@@ -284,7 +341,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case 'product.list': {
+      case 'product-list': {
         const { limit = 50, category } = args || {};
 
         let query = supabase
@@ -337,14 +394,30 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case 'product.update': {
-        const { id, category, janCode, name: productName, description, lang = 'en' } = args;
+      case 'product-update': {
+        const {
+          id,
+          category,
+          janCode,
+          pointValue,
+          lang = 'en',
+          name: productName,
+          description,
+          effects,
+          sideEffects,
+          goodFor,
+          features,
+          usage,
+          ingredients,
+          warnings,
+        } = args;
 
-        // Update product if category or janCode provided
-        if (category || janCode) {
+        // Update product if category, janCode, or pointValue provided
+        if (category || janCode || pointValue !== undefined) {
           const updates = {};
           if (category) updates.category = category;
           if (janCode) updates.jan_code = janCode;
+          if (pointValue !== undefined) updates.point_value = pointValue;
 
           const { error: productError } = await supabase
             .from('products')
@@ -356,20 +429,51 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           }
         }
 
-        // Update product text if name or description provided
-        if (productName || description) {
-          const updates = {};
-          if (productName) updates.name = productName;
-          if (description) updates.description = description;
+        // Update product text for the specified language
+        const textUpdates = {};
+        if (productName !== undefined) textUpdates.name = productName;
+        if (description !== undefined) textUpdates.description = description;
+        if (effects !== undefined) textUpdates.effects = effects;
+        if (sideEffects !== undefined) textUpdates.side_effects = sideEffects;
+        if (goodFor !== undefined) textUpdates.good_for = goodFor;
+        if (features !== undefined) textUpdates.features = JSON.stringify(features);
+        if (usage !== undefined) textUpdates.usage = usage;
+        if (ingredients !== undefined) textUpdates.ingredients = ingredients;
+        if (warnings !== undefined) textUpdates.warnings = warnings;
 
-          const { error: textError } = await supabase
+        if (Object.keys(textUpdates).length > 0) {
+          // Check if text entry exists for this language
+          const { data: existing } = await supabase
             .from('product_texts')
-            .update(updates)
+            .select('product_id')
             .eq('product_id', id)
-            .eq('lang', lang);
+            .eq('lang', lang)
+            .single();
 
-          if (textError) {
-            throw new Error(`Failed to update product text: ${textError.message}`);
+          if (existing) {
+            // Update existing text
+            const { error: textError } = await supabase
+              .from('product_texts')
+              .update(textUpdates)
+              .eq('product_id', id)
+              .eq('lang', lang);
+
+            if (textError) {
+              throw new Error(`Failed to update product text: ${textError.message}`);
+            }
+          } else {
+            // Insert new text entry for this language
+            const { error: textError } = await supabase
+              .from('product_texts')
+              .insert({
+                product_id: id,
+                lang,
+                ...textUpdates,
+              });
+
+            if (textError) {
+              throw new Error(`Failed to insert product text: ${textError.message}`);
+            }
           }
         }
 
@@ -379,15 +483,17 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
               type: 'text',
               text: JSON.stringify({
                 success: true,
-                message: 'Product updated successfully. Bundle regeneration triggered automatically.',
+                message: `Product updated successfully for language "${lang}". Bundle regeneration triggered automatically.`,
                 productId: id,
+                language: lang,
+                updatedFields: Object.keys(textUpdates),
               }, null, 2),
             },
           ],
         };
       }
 
-      case 'product.delete': {
+      case 'product-delete': {
         const { id } = args;
 
         const { error } = await supabase
@@ -413,7 +519,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case 'bundle.generate': {
+      case 'bundle-generate': {
         console.error('[MCP] Manually triggering bundle generation...');
 
         // Call Edge Function
@@ -439,7 +545,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
 
-      case 'bundle.status': {
+      case 'bundle-status': {
         // Get latest bundle metadata
         const { data: metadata, error } = await supabase
           .from('bundle_metadata')

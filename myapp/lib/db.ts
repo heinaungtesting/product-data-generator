@@ -43,26 +43,15 @@ export interface AppMeta {
   updatedAt: string;
 }
 
-export interface ProductImage {
-  productId: string;
-  imageData: string; // base64 encoded
-  thumbnailData: string; // base64 encoded thumbnail
-  mimeType: string;
-  sizeBytes: number;
-  updatedAt: string;
-}
-
 class MyAppDatabase extends Dexie {
   products!: EntityTable<Product, 'id'>;
   drafts!: EntityTable<Draft, 'id'>;
   logs!: EntityTable<LogEntry, 'id'>;
   meta!: EntityTable<AppMeta, 'key'>;
-  productImages!: EntityTable<ProductImage, 'productId'>;
 
   constructor() {
     super('MyAppDB');
 
-    // Version 1: Initial schema
     this.version(1).stores({
       products: 'id, category, *tags, updatedAt, syncedAt',
       drafts: 'id, productId, updatedAt',
@@ -70,23 +59,19 @@ class MyAppDatabase extends Dexie {
       meta: 'key, updatedAt',
     });
 
-    // Version 2: Add productImages table
     this.version(2).stores({
       products: 'id, category, *tags, updatedAt, syncedAt',
       drafts: 'id, productId, updatedAt',
       logs: '++id, productId, action, timestamp',
       meta: 'key, updatedAt',
-      productImages: 'productId, updatedAt',
     });
 
-    // Version 3: Refresh logs schema with richer data
     this.version(3)
       .stores({
         products: 'id, category, *tags, updatedAt, syncedAt',
         drafts: 'id, productId, updatedAt',
         logs: '++id, productId, timestamp, category',
         meta: 'key, updatedAt',
-        productImages: 'productId, updatedAt',
       })
       .upgrade((transaction) => {
         const logsTable = transaction.table('logs');
@@ -101,15 +86,22 @@ class MyAppDatabase extends Dexie {
             }
           });
       });
+
+    this.version(4).stores({
+      products: 'id, category, *tags, updatedAt, syncedAt',
+      drafts: 'id, productId, updatedAt',
+      logs: '++id, productId, timestamp, category',
+      meta: 'key, updatedAt',
+      productImages: null,
+    });
   }
 
   async clearAll() {
-    await this.transaction('rw', [this.products, this.drafts, this.logs, this.meta, this.productImages], async () => {
+    await this.transaction('rw', [this.products, this.drafts, this.logs, this.meta], async () => {
       await this.products.clear();
       await this.drafts.clear();
       await this.logs.clear();
       await this.meta.clear();
-      await this.productImages.clear();
     });
   }
 
@@ -121,19 +113,17 @@ class MyAppDatabase extends Dexie {
       drafts: await this.drafts.toArray(),
       logs: await this.logs.toArray(),
       meta: await this.meta.toArray(),
-      productImages: await this.productImages.toArray(),
     };
   }
 
   async importData(data: Awaited<ReturnType<typeof this.exportData>>) {
-    await this.transaction('rw', [this.products, this.drafts, this.logs, this.meta, this.productImages], async () => {
+    await this.transaction('rw', [this.products, this.drafts, this.logs, this.meta], async () => {
       await this.clearAll();
 
       if (data.products?.length) await this.products.bulkAdd(data.products);
       if (data.drafts?.length) await this.drafts.bulkAdd(data.drafts);
       if (data.logs?.length) await this.logs.bulkAdd(data.logs);
       if (data.meta?.length) await this.meta.bulkAdd(data.meta);
-      if (data.productImages?.length) await this.productImages.bulkAdd(data.productImages);
     });
   }
 }
@@ -169,33 +159,4 @@ export async function searchProducts(query: string, lang: string = 'en'): Promis
              product.tags.some(tag => tag.toLowerCase().includes(lowerQuery));
     })
     .toArray();
-}
-
-// Image management functions
-export async function saveProductImage(productId: string, imageData: string, thumbnailData: string, mimeType: string, sizeBytes: number) {
-  await db.productImages.put({
-    productId,
-    imageData,
-    thumbnailData,
-    mimeType,
-    sizeBytes,
-    updatedAt: new Date().toISOString(),
-  });
-}
-
-export async function getProductImage(productId: string): Promise<ProductImage | undefined> {
-  return db.productImages.get(productId);
-}
-
-export async function deleteProductImage(productId: string) {
-  await db.productImages.delete(productId);
-}
-
-export async function getTotalImageSize(): Promise<number> {
-  const images = await db.productImages.toArray();
-  return images.reduce((total, img) => total + img.sizeBytes, 0);
-}
-
-export async function getImageCount(): Promise<number> {
-  return db.productImages.count();
 }

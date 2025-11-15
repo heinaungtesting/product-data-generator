@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "myapp-db": {
+      "command": "npm",
+      "args": ["run", "mcp"],
+      "cwd": "/Users/apple/testweb/my-app/myapp",
+      "description": "MyApp database query tools - provides access to IndexedDB products and logs"
+    }
+  }
+}

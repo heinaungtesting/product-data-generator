@@ -1,8 +1,10 @@
 /**
  * Logs API Route - Stores product viewing logs
+ * Saves to Google Sheets for backup and analysis
  */
 
 import { NextResponse } from 'next/server';
+import { appendLogToSheet, isGoogleSheetsEnabled } from '@/lib/sheets';
 
 interface IncomingLogBody {
   productId?: string;
@@ -25,11 +27,40 @@ export async function POST(request: Request) {
       );
     }
 
-    // In a real app, you'd save to database here
-    // For now, just return success
-    console.log('Log saved:', body);
+    // Prepare log entry
+    const logEntry = {
+      productId: body.productId,
+      productName: body.productName || 'Unknown Product',
+      category: body.category || 'unknown',
+      timestamp: body.timestamp,
+      points: body.points || 0,
+    };
 
-    return NextResponse.json({ ok: true }, { status: 200 });
+    console.log('Log received:', logEntry);
+
+    // Save to Google Sheets if enabled
+    if (isGoogleSheetsEnabled()) {
+      const result = await appendLogToSheet(logEntry);
+
+      if (!result.success) {
+        console.error('Google Sheets save failed:', result.error);
+        // Don't fail the request - log locally succeeded
+        return NextResponse.json(
+          {
+            ok: true,
+            warning: 'Saved locally, but Google Sheets sync failed',
+            sheetsError: result.error
+          },
+          { status: 200 }
+        );
+      }
+
+      console.log('Log saved to Google Sheets successfully');
+    } else {
+      console.log('Google Sheets integration disabled - log saved locally only');
+    }
+
+    return NextResponse.json({ ok: true, savedToSheets: isGoogleSheetsEnabled() }, { status: 200 });
   } catch (error) {
     console.error('Error saving log:', error);
     return NextResponse.json(
@@ -40,6 +71,9 @@ export async function POST(request: Request) {
 }
 
 export async function GET() {
-  // Future: return logs
-  return NextResponse.json({ logs: [] });
+  // Return Google Sheets status
+  return NextResponse.json({
+    googleSheetsEnabled: isGoogleSheetsEnabled(),
+    message: 'Logs are stored in IndexedDB locally and optionally synced to Google Sheets'
+  });
 }
