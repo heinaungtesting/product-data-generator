@@ -2,6 +2,39 @@
 
 **Date:** 2025-01-17
 **Project:** Replace PDG interface with Admin Dashboard + MyApp Frontend
+**Status:** ✅ Ready for Implementation - All Requirements Confirmed
+
+---
+
+## Executive Summary
+
+This document provides complete specifications for building an admin dashboard system that replaces the existing PDG (Product Data Generator) interface. The system consists of two applications sharing a single Supabase database:
+
+**1. Admin Dashboard** (New - Replaces PDG)
+- Desktop-optimized management interface
+- Full CRUD for products, users, and points
+- Sales tracking and analytics with daily/monthly calculations
+- Single image upload per product
+- English-only interface
+- Separate admin authentication
+
+**2. MyApp** (Existing PWA - Enhanced)
+- User-facing mobile PWA
+- Users self-log sales by clicking products
+- View points (today, this month, all-time)
+- Multi-language product details
+- Role-based access (users see own data, admins see everything)
+
+**Key Features:**
+- ✅ Users self-log sales → Auto-calculate points
+- ✅ Daily & monthly point tracking
+- ✅ Single image per product (800x800px, 5MB max)
+- ✅ Keep MCP server integration for Claude Desktop
+- ✅ Migrate existing products and tags
+- ✅ Separate admin account for security
+
+**Implementation Time:** 24-30 hours
+**Tech Stack:** Next.js 15, Supabase, TypeScript, Shadcn/ui
 
 ---
 
@@ -202,15 +235,6 @@ CREATE TABLE point_logs (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Product Images (multiple images per product)
-CREATE TABLE product_images (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  product_id TEXT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
-  image_url TEXT NOT NULL,                 -- Supabase Storage URL
-  display_order INTEGER DEFAULT 0,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
 -- Tags (existing)
 CREATE TABLE tags (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -283,6 +307,57 @@ CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
 
 CREATE TRIGGER update_products_updated_at BEFORE UPDATE ON products
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Helper function: Get user points for a specific date
+CREATE OR REPLACE FUNCTION get_user_points_by_date(
+  p_user_id UUID,
+  p_date DATE
+)
+RETURNS INTEGER AS $$
+BEGIN
+  RETURN (
+    SELECT COALESCE(SUM(points), 0)
+    FROM point_logs
+    WHERE user_id = p_user_id
+      AND log_date = p_date
+  );
+END;
+$$ LANGUAGE plpgsql;
+
+-- Helper function: Get user points for a specific month
+CREATE OR REPLACE FUNCTION get_user_points_by_month(
+  p_user_id UUID,
+  p_year INTEGER,
+  p_month INTEGER
+)
+RETURNS INTEGER AS $$
+BEGIN
+  RETURN (
+    SELECT COALESCE(SUM(points), 0)
+    FROM point_logs
+    WHERE user_id = p_user_id
+      AND EXTRACT(YEAR FROM log_date) = p_year
+      AND EXTRACT(MONTH FROM log_date) = p_month
+  );
+END;
+$$ LANGUAGE plpgsql;
+
+-- Helper function: Get user points for date range
+CREATE OR REPLACE FUNCTION get_user_points_by_range(
+  p_user_id UUID,
+  p_start_date DATE,
+  p_end_date DATE
+)
+RETURNS INTEGER AS $$
+BEGIN
+  RETURN (
+    SELECT COALESCE(SUM(points), 0)
+    FROM point_logs
+    WHERE user_id = p_user_id
+      AND log_date BETWEEN p_start_date AND p_end_date
+  );
+END;
+$$ LANGUAGE plpgsql;
 ```
 
 ### Row Level Security (RLS):
@@ -419,7 +494,7 @@ interface ProductForm {
   id: string;                         // Product ID
   category: 'health' | 'cosmetic';
   pointValue: number;
-  images: File[];                     // Upload multiple images
+  image: File | null;                 // Single image upload
   texts: {
     ja: { name: string; description: string; bundleSize: string };
     en: { name: string; description: string; bundleSize: string };
@@ -432,11 +507,11 @@ interface ProductForm {
 ```
 
 **Features:**
-- Drag-and-drop image upload
+- Single image upload (drag-and-drop or file picker)
+- Image preview before save
 - Multi-language text editor (tabs for each language)
-- Point value calculator
+- Point value input
 - Tag selection (multi-select)
-- Preview (optional - you said no need)
 - Bulk import/export (CSV)
 
 ### 2. User Management
@@ -465,8 +540,12 @@ interface UserForm {
 - View all point transactions
 - Filter by user, date range, product
 - Manual point adjustment (add/subtract points with reason)
-- Point history export
-- Point analytics dashboard
+- **Daily point calculations:** View points earned today for each user
+- **Monthly point calculations:** View points earned this month for each user
+- Point history export (CSV/Excel)
+- Point analytics dashboard with charts
+- Date range selectors for custom reporting
+- Leaderboard view (top performers by day/month/all-time)
 
 ### 4. Sales Tracking
 
@@ -478,32 +557,45 @@ interface UserForm {
 - Revenue calculator (if points = money)
 - Export sales data (CSV/Excel)
 
-### 5. Image Upload
+### 5. Image Upload (Single Image per Product)
 
 **Implementation:**
 ```typescript
 // Upload to Supabase Storage
 const uploadImage = async (file: File, productId: string) => {
-  const fileName = `${productId}/${Date.now()}-${file.name}`;
+  // Compress image before upload
+  const compressedFile = await compressImage(file, {
+    maxWidth: 800,
+    maxHeight: 800,
+    quality: 0.8,
+  });
+
+  const fileName = `${productId}.${file.name.split('.').pop()}`;
   const { data, error } = await supabase.storage
     .from('product-images')
-    .upload(fileName, file);
+    .upload(fileName, compressedFile, {
+      upsert: true, // Replace existing image
+    });
 
-  return data?.path;
+  if (error) throw error;
+
+  // Get public URL
+  const { data: urlData } = supabase.storage
+    .from('product-images')
+    .getPublicUrl(fileName);
+
+  return urlData.publicUrl;
 };
-
-// Get public URL
-const { data } = supabase.storage
-  .from('product-images')
-  .getPublicUrl(imagePath);
 ```
 
 **Features:**
-- Image compression before upload
-- Multiple images per product
-- Image reordering (drag-and-drop)
-- Delete images
-- Image CDN via Supabase
+- Single image per product (replaces old image on update)
+- Image compression before upload (max 800x800px, 80% quality)
+- File size limit: 5MB
+- Supported formats: JPG, PNG, WebP
+- Image preview before save
+- Delete/replace image
+- Fast loading via Supabase CDN
 
 ---
 
@@ -538,16 +630,19 @@ if (user.role === 'admin') {
 - Click product → View details
 
 **Product Detail Page:**
-- Product images (gallery)
+- Product image (single image)
 - Multi-language description
 - Point value display
-- *Possibly:* "Log Sale" button (for users to log their own sales)
+- **"Log Sale" button** (users self-log sales)
+- Confirmation dialog before logging
 
 **User Dashboard:**
-- Current point balance
-- Recent sales history
-- Monthly point summary
-- Leaderboard (if gamification wanted)
+- **All-time point balance** (total)
+- **Today's points** (current date)
+- **This month's points** (current month)
+- Recent sales history (last 10 sales)
+- Monthly breakdown chart
+- Personal sales calendar view
 
 ### Admin Features (MyApp when admin logged in)
 
@@ -657,57 +752,52 @@ if (user && await bcrypt.compare(pin, user.pin_hash)) {
 
 ---
 
-## Questions to Clarify
+## ✅ CONFIRMED REQUIREMENTS
 
-### 1. User Sales Logging (MyApp):
-**Should regular users be able to log their own sales in MyApp?**
+### 1. User Sales Logging (MyApp): ✅ USERS SELF-LOG
+**Decision: Users self-log their own sales**
+- User clicks product in MyApp → Confirms → Points automatically added
+- Fast, real-time tracking
+- `point_logs.logged_by` tracks which user logged the sale
+- Admin can view all logs in dashboard for oversight
+- Admin can also manually log sales for users if needed (backup)
 
-**Option A:** Users self-log sales
-- User clicks product → Confirms → Points added
-- Fast, real-time
-- Requires trust
+### 2. Point System: ✅ TRACKING & CALCULATION
+**Decision: Points = Sales tracking with daily/monthly calculations**
+- Track individual sales per user
+- Calculate daily point totals (per user, per day)
+- Calculate monthly point totals (per user, per month)
+- Dashboard shows:
+  - Today's points (current date)
+  - This month's points (current month)
+  - All-time total points
+- Reports exportable by date range
 
-**Option B:** Admin logs sales for users
-- Admin dashboard has "Log Sale" feature
-- Admin selects user + product → Points added
-- More control, slower
+### 3. Image Requirements: ✅ ONE IMAGE PER PRODUCT
+**Decision: Single image per product**
+- One main product image stored in `products.image_url`
+- Stored in Supabase Storage bucket
+- Image size limit: 5MB
+- Recommended dimensions: 800x800px (square)
+- Format: JPG, PNG, WebP
+- Image compression on upload
+- **Remove `product_images` table from schema** (not needed)
 
-**Option C:** Hybrid
-- Users can self-log
-- Admin can also log for users
-- Audit log tracks who logged what
+### 4. Access Control: ✅ SEPARATE ADMIN ACCOUNT
+**Decision: Admin has separate account for dashboard**
+- Admin dashboard: Login with admin email + password (Supabase Auth)
+- MyApp: Users login with nickname + PIN (separate from admin)
+- Admin can create a regular user account to access MyApp features
+- Clear separation: Admin dashboard ≠ MyApp user account
+- Two-system approach for security
 
-**Recommendation:** Option C
-
-### 2. Point System:
-**What do points represent?**
-- Sales commission?
-- Performance tracking?
-- Gamification/rewards?
-
-**Why it matters:**
-- Affects reporting features
-- May need point conversion (points → money)
-- May need reward tiers
-
-### 3. Image Requirements:
-**For product images:**
-- How many images per product? (1 main + gallery?)
-- Image size limits? (e.g., max 5MB)
-- Required dimensions? (e.g., 800x800px)
-- Support for image cropping?
-
-### 4. Access Control:
-**For MyApp when admin uses it:**
-- Should admin account be separate from regular user account?
-- Can one account have multiple roles?
-- Should there be "super admin" vs "admin" roles?
-
-### 5. Data Migration:
-**From existing PDG project:**
-- Migrate existing products? (yes/no)
-- Migrate existing data? (tags, etc.)
-- Keep MCP server integration? (Claude Desktop)
+### 5. Data Migration: ✅ KEEP MCP INTEGRATION
+**Decision: Migrate existing data and keep MCP server**
+- Migrate existing products from PDG to Supabase
+- Migrate existing tags
+- Keep MCP server integration (Claude Desktop for product management)
+- Update MCP server to use Supabase instead of Prisma
+- Admin dashboard can coexist with MCP tools
 
 ---
 
@@ -828,31 +918,57 @@ if (user && await bcrypt.compare(pin, user.pin_hash)) {
 
 ## Next Steps
 
-1. **Confirm Requirements:**
-   - Answer clarification questions above
-   - Approve database schema
-   - Approve UI design direction
+### ✅ Requirements Confirmed - Ready for Implementation
 
-2. **Set Up Supabase:**
-   - Create account
-   - Create project
-   - Set up storage bucket
-   - Get API keys
+**Phase 1: Supabase Setup** (30 minutes)
+1. Create Supabase account at supabase.com
+2. Create new project
+3. Set up storage bucket named `product-images`
+4. Enable Row Level Security
+5. Get API keys (URL, anon key, service_role key)
+6. Run database migrations
 
-3. **Start Development:**
-   - Phase 1: Database setup
-   - Phase 2: Admin dashboard foundation
-   - Phase 3: Feature implementation
-   - Phase 4: MyApp integration
-   - Phase 5: Testing & deployment
+**Phase 2: Admin Dashboard Development** (12-15 hours)
+1. Initialize Next.js 15 project with TypeScript
+2. Install dependencies (Supabase, Shadcn/ui, etc.)
+3. Create authentication system (admin login)
+4. Build dashboard layout (sidebar, header)
+5. Implement Product CRUD with image upload
+6. Implement User CRUD with PIN management
+7. Build Point Management interface
+8. Build Sales Tracking & Analytics
+9. Add daily/monthly calculation views
+10. Add export functionality (CSV/Excel)
+
+**Phase 3: MyApp Integration** (6-8 hours)
+1. Add Supabase client to MyApp
+2. Implement user login (nickname + PIN)
+3. Add "Log Sale" button to product detail pages
+4. Create user dashboard with point displays
+5. Add daily/monthly point views
+6. Implement sales history view
+7. Add role-based UI rendering
+8. Test admin features in MyApp
+
+**Phase 4: MCP Server Update** (2-3 hours)
+1. Update MCP server to use Supabase
+2. Replace Prisma calls with Supabase queries
+3. Test product management via Claude Desktop
+4. Ensure translation features still work
+
+**Phase 5: Testing & Deployment** (2-3 hours)
+1. End-to-end testing
+2. Performance testing
+3. Security audit
+4. Deploy admin dashboard to Vercel
+5. Deploy MyApp updates
+6. Production database migration
+
+**Total Estimated Time: 24-30 hours**
 
 ---
 
-**Status:** Waiting for confirmation on:
-1. User sales logging approach (Option A/B/C)
-2. Point system purpose
-3. Image requirements
-4. Access control model
-5. Data migration needs
+**Status:** ✅ All requirements confirmed and documented
+**Ready to:** Start Supabase setup and begin development
 
-**Once confirmed, ready to start implementation.**
+**This document serves as the complete implementation prompt for any developer or AI assistant.**
