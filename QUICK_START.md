@@ -1,195 +1,204 @@
-# Quick Start Guide
+# Quick Start - Staff Point Management System
 
-Get PDG and MyApp running in under 10 minutes.
+**Last Updated:** 2025-01-15
+**Status:** Phase 1 Complete, Ready for Implementation
 
-## Prerequisites
+---
 
-- Node.js 18+ installed
-- GitHub account
-- Vercel or Netlify account (free)
+## 📋 TL;DR
 
-## 🚀 5-Minute Setup
+**What we're building:**
+- Keep your OLD project for managing products & staff
+- Build NEW simple staff portal for staff to view points
+- Both share same Supabase database
 
-### 1. Install & Run Locally (2 min)
+**Current status:**
+- ✅ Database schema created
+- ✅ Migration scripts ready
+- ⏳ Waiting for you to set up Supabase
+
+---
+
+## 🚀 What YOU Need to Do (15 minutes)
+
+### Step 1: Create Supabase Account
+
+1. Go to **[supabase.com](https://supabase.com)**
+2. Sign up with GitHub
+3. Create new project:
+   - Name: `product-manager` (or anything)
+   - Password: Generate strong password (SAVE IT!)
+   - Region: Choose closest to you
+   - Plan: **Free** ($0/month)
+4. Wait 2 minutes for setup
+
+### Step 2: Get API Keys
+
+1. In Supabase dashboard → **Settings** → **API**
+2. Copy these 3 values:
+   - **Project URL**: `https://xxxxx.supabase.co`
+   - **anon public**: `eyJhbGc...` (long key)
+   - **service_role**: Click "Reveal" then copy (⚠️ keep secret!)
+
+### Step 3: Configure Locally
 
 ```bash
-# Clone and install
-git clone https://github.com/yourusername/product-data-generator.git
-cd product-data-generator
-npm install
-
-# Create environment file
+# 1. Copy environment file
 cp .env.local.example .env.local
 
-# Edit .env.local and set your password:
-# PDG_AUTH_PASSWORD="your-secure-password"
-
-# Initialize database
-npx prisma generate
-npx prisma migrate deploy
-
-# Run PDG
-npm run dev
+# 2. Edit .env.local and paste your Supabase credentials
+# Open .env.local in editor and replace:
+NEXT_PUBLIC_SUPABASE_URL="https://xxxxx.supabase.co"
+NEXT_PUBLIC_SUPABASE_ANON_KEY="eyJhbGc..."
+SUPABASE_SERVICE_ROLE_KEY="eyJhbGc..."
 ```
 
-Visit http://localhost:3000 and login with:
-- Username: `admin`
-- Password: (what you set in .env.local)
-
-### 2. Deploy PDG to Vercel (2 min)
+### Step 4: Install & Test
 
 ```bash
-# Install and login
-npm install -g vercel
-vercel login
-
-# Deploy
-vercel --prod
-```
-
-Add environment variables in Vercel dashboard:
-- `DATABASE_URL` = `file:./prisma/dev.db`
-- `PDG_AUTH_USERNAME` = `admin`
-- `PDG_AUTH_PASSWORD` = your password
-- `PDG_AUTH_SESSION_SECRET` = random 32+ character string
-
-Your PDG is now live! 🎉
-
-### 3. Setup Bundle + MyApp (1 min)
-
-```bash
-# Enable GitHub Pages in repo Settings → Pages → gh-pages branch
-
-# Install MyApp dependencies
-cd myapp
+# Install dependencies
 npm install
 
-# Create env file
-echo 'NEXT_PUBLIC_BUNDLE_URL=https://heinaungtesting.github.io/product-data-generator/bundle.json.gz' > .env.local
+# Apply database migrations
+npx supabase db push
 
-# Deploy MyApp
-vercel --prod
+# Test connection (should show "ALL TESTS PASSED!")
+npx tsx scripts/test-supabase-connection.ts
 ```
 
-Add `NEXT_PUBLIC_BUNDLE_URL` in Vercel dashboard with your GitHub Pages URL.
+### Step 5: Migrate Your Data (Optional)
 
-Your MyApp PWA is now live! 🎉
-
-## 📱 Common Tasks
-
-### Add Products in PDG
-
-1. Login to your PDG deployment
-2. Click "Add Product" button
-3. Fill in product details (or use AI autofill)
-4. Save
-
-### Update Bundle for MyApp
-
-**Automatic (Recommended):**
 ```bash
-# Just push changes to data/ directory
-git add data/products.ndjson
-git commit -m "Update products"
-git push
-# GitHub Actions will auto-update bundle
+# If you have existing products in SQLite:
+npm run db:migrate-to-supabase
 ```
 
-**Manual:**
+---
+
+## 🎉 Then Tell Claude Code
+
+Once all tests pass, tell Claude Code:
+
+**"Supabase is ready, start building"**
+
+Claude will then:
+1. Add staff management to your old project (2 hours)
+2. Create new clean staff portal (4 hours)
+3. Update MCP server (1 hour)
+4. Help you deploy both (30 min)
+
+**Total: 7-8 hours = Done in 1 day!**
+
+---
+
+## 📁 Key Files to Read
+
+| File | Purpose |
+|------|---------|
+| **`docs/SESSION_SUMMARY.md`** | Complete context & architecture |
+| **`SUPABASE_SETUP_GUIDE.md`** | Detailed Supabase setup guide |
+| **`docs/DUAL_PROJECT_PLAN.md`** | Technical implementation plan |
+
+---
+
+## 🏗️ Architecture (Quick View)
+
+```
+┌─────────────────────────────────┐
+│   Supabase (Shared Database)    │
+└────────┬────────────────────────┘
+         │
+    ┌────┴────┐
+    │         │
+┌───▼───┐ ┌──▼──────┐
+│  OLD  │ │   NEW   │
+│PROJECT│ │ PROJECT │
+│       │ │         │
+│ You   │ │  Staff  │
+│ Use   │ │  Use    │
+└───────┘ └─────────┘
+```
+
+**OLD Project (product-data-generator):**
+- Keep everything as-is
+- Add: Staff management + Point logging
+- You use this
+
+**NEW Project (staff-portal):**
+- Brand new, clean, simple
+- Staff login, view points, history, calendar
+- Staff use this on phones
+
+---
+
+## ⚡ Quick Troubleshooting
+
+**"npm install fails"**
 ```bash
-cd mcp-server
+rm -rf node_modules package-lock.json
 npm install
-node build-bundle.js
 ```
 
-### Sync MyApp with New Data
+**"supabase db push fails"**
+- Check .env.local has correct credentials
+- Make sure Supabase project is not paused
+- Try: `npx supabase login` first
 
-1. Open MyApp
-2. Go to Settings tab
-3. Tap "Sync Now"
-4. Products updated! ✅
+**"Connection test fails"**
+- Verify NEXT_PUBLIC_SUPABASE_URL in .env.local
+- Check both API keys are correct
+- Restart terminal to reload env vars
 
-### Export Data from PDG
+**"Table already exists" error**
+- Tables already created, that's fine!
+- Skip to testing: `npx tsx scripts/test-supabase-connection.ts`
 
-1. Login to PDG
-2. Click "Export Data" button in header
-3. JSON file downloads
+---
 
-### Install MyApp as PWA
+## 🎯 What Gets Built
 
-**iPhone:**
-Safari → Share → Add to Home Screen
+### Your Old Project Gets:
+- ✅ Staff management page
+- ✅ "Log Sale" button on products
+- ✅ Point tracking
 
-**Android:**
-Chrome → Menu → Install app
+### New Staff Portal Has:
+- ✅ Simple login (email or PIN)
+- ✅ Points dashboard
+- ✅ Transaction history
+- ✅ Calendar view
 
-## 🎯 Production Checklist
+**Both connect to same database = Real-time sync!**
 
-Before going live:
+---
 
-- [ ] Changed PDG_AUTH_PASSWORD from default
-- [ ] Set PDG_AUTH_SESSION_SECRET to random 32+ chars
-- [ ] PDG deployed to Vercel/Netlify
-- [ ] GitHub Pages enabled for bundle
-- [ ] MyApp deployed to Vercel/Netlify
-- [ ] Bundle URL configured in MyApp
-- [ ] Test sync works (MyApp → Settings → Sync Now)
-- [ ] Test offline mode in MyApp
-- [ ] Install MyApp as PWA on phone
-- [ ] Backup database (Export Data button)
+## 📞 Need Help?
 
-## 🔧 Troubleshooting
+**If stuck on Supabase setup:**
+- Read: `SUPABASE_SETUP_GUIDE.md`
+- Check: Supabase dashboard isn't showing errors
+- Verify: API keys copied correctly (no extra spaces)
 
-**Can't login to PDG**
-- Check PDG_AUTH_USERNAME and PDG_AUTH_PASSWORD in env vars
-- Default username is `admin`
+**If ready to continue:**
+- Tell Claude Code: "Supabase is ready"
+- Or: "Start building the staff features"
 
-**MyApp shows "No products found"**
-- Check bundle URL in Settings
-- Verify GitHub Pages is enabled and deployed
-- Run bundle generation: `cd mcp-server && node build-bundle.js`
+---
 
-**TypeScript build errors**
-- Run `npx prisma generate`
-- Delete `.next` folder and rebuild
+## ✅ Checklist
 
-**Database errors**
-- Run `npx prisma migrate deploy`
-- Check DATABASE_URL is correct
+Before telling Claude to start:
 
-## 📚 Full Documentation
+- [ ] Supabase account created
+- [ ] Project created and active (not paused)
+- [ ] API keys copied to `.env.local`
+- [ ] `npm install` completed successfully
+- [ ] `npx supabase db push` completed
+- [ ] `npx tsx scripts/test-supabase-connection.ts` shows "ALL TESTS PASSED"
+- [ ] (Optional) Existing data migrated
 
-- [DEPLOYMENT.md](./DEPLOYMENT.md) - Complete deployment guide
-- [myapp/README.md](./myapp/README.md) - MyApp documentation
-- [README.md](./README.md) - Project overview
+**When all checked, you're ready!** 🚀
 
-## 💡 Tips
+---
 
-- **Free hosting**: Vercel/Netlify both have generous free tiers
-- **Offline-first**: MyApp works 100% offline after first sync
-- **Privacy**: All data stored locally, no tracking
-- **AI optional**: Leave AI_API_KEY empty to use free templates
-- **Limits**: Max 100 products in PDG (configurable)
-- **Backup**: Use Export Data button regularly
-
-## 🆘 Need Help?
-
-Open an issue in the GitHub repo with:
-- What you're trying to do
-- What error you're seeing
-- Steps you've already tried
-
-## 🎉 Success!
-
-You now have:
-- ✅ PDG running on Vercel/Netlify (free)
-- ✅ MyApp PWA on Vercel/Netlify (free)
-- ✅ Auto-updating bundle on GitHub Pages (free)
-- ✅ 100% offline capability
-- ✅ Privacy-first, local data storage
-- ✅ Zero monthly costs
-
-Total time: ~10 minutes
-Total cost: $0/month
-
-Enjoy your product data management system! 🚀
+**Questions?** Ask Claude Code - it has full context in `docs/SESSION_SUMMARY.md`

@@ -12,11 +12,15 @@
     "lint": "eslint",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
+    "db:migrate-to-supabase": "tsx scripts/migrate-to-supabase.ts",
+    "supabase:types": "supabase gen types typescript --linked > types/supabase.ts",
     "schema:json": "tsx packages/schema/scripts/build-json-schema.ts",
     "test": "vitest"
   },
   "dependencies": {
     "@prisma/client": "^6.18.0",
+    "@supabase/supabase-js": "^2.39.0",
+    "dotenv": "^16.4.5",
     "next": "16.0.0",
     "react": "19.2.0",
     "react-dom": "19.2.0",
