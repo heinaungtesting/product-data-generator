@@ -1,13 +1,14 @@
 'use client';
 
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
+import { VirtuosoGrid } from 'react-virtuoso';
 import AppShell from '@/components/AppShell';
 import { useLiveQuery } from '@/lib/hooks';
 import { db, type Product } from '@/lib/db';
 import { useAppStore, type Language } from '@/lib/store';
-import { syncNow } from '@/lib/sync';
+import { syncWithWorker, syncNow } from '@/lib/sync';
 
 export default function HomePage() {
   const router = useRouter();
@@ -44,6 +45,25 @@ export default function HomePage() {
     return () => window.clearTimeout(timeout);
   }, [searchInput]);
 
+  // Responsive column count for virtualized grid
+  const [columnCount, setColumnCount] = useState(1);
+  const gridRef = useRef<HTMLDivElement>(null);
+
+  // Update column count based on container width
+  useEffect(() => {
+    const updateColumns = () => {
+      if (gridRef.current) {
+        // sm breakpoint is 640px in Tailwind
+        const width = gridRef.current.offsetWidth;
+        setColumnCount(width >= 640 ? 2 : 1);
+      }
+    };
+
+    updateColumns();
+    window.addEventListener('resize', updateColumns);
+    return () => window.removeEventListener('resize', updateColumns);
+  }, []);
+
   // Auto-sync on first load if database is empty
   useEffect(() => {
     const checkAndSync = async () => {
@@ -57,7 +77,8 @@ export default function HomePage() {
           console.log('First load detected - auto-syncing products...');
           setIsSyncing(true);
 
-          const result = await syncNow();
+          // Use web worker for non-blocking sync
+          const result = await syncWithWorker();
 
           if (result.success) {
             setLastSyncTime(new Date().toISOString());
@@ -160,7 +181,8 @@ export default function HomePage() {
     setSyncSuccess(null);
 
     try {
-      const result = await syncNow();
+      // Use web worker for non-blocking sync
+      const result = await syncWithWorker();
 
       if (result.success) {
         setLastSyncTime(new Date().toISOString());
@@ -188,7 +210,15 @@ export default function HomePage() {
   }, [setLanguage, i18n]);
 
   const handleOpenProduct = useCallback((productId: string) => {
-    router.push(`/product/${productId}`);
+    const navigate = () => router.push(`/product/${productId}`);
+
+    // Use View Transitions API if available for smooth animations
+    if (typeof document !== 'undefined' && 'startViewTransition' in document) {
+      (document as Document & { startViewTransition: (callback: () => void) => void })
+        .startViewTransition(navigate);
+    } else {
+      navigate();
+    }
   }, [router]);
 
   const handleSaveToLog = useCallback(async (product: Product) => {
@@ -435,110 +465,120 @@ export default function HomePage() {
               )}
             </div>
           ) : (
-            <div className="grid gap-6 sm:grid-cols-2">
-              {products.map((product, index) => {
-                const displayName = resolveName(product, language);
-                const initials =
-                  displayName
-                    .split(/\s+/)
-                    .filter(Boolean)
-                    .slice(0, 2)
-                    .map((word) => word[0]?.toUpperCase() ?? '')
-                    .join('') || 'P';
+            <div ref={gridRef} className="min-h-[500px]">
+              <VirtuosoGrid
+                style={{ height: 'calc(100vh - 400px)', minHeight: '500px' }}
+                totalCount={products.length}
+                overscan={200}
+                listClassName={`grid gap-6 ${columnCount === 2 ? 'sm:grid-cols-2' : 'grid-cols-1'}`}
+                itemClassName="h-fit"
+                itemContent={(index) => {
+                  const product = products[index];
+                  const displayName = resolveName(product, language);
+                  const initials =
+                    displayName
+                      .split(/\s+/)
+                      .filter(Boolean)
+                      .slice(0, 2)
+                      .map((word) => word[0]?.toUpperCase() ?? '')
+                      .join('') || 'P';
 
-                return (
-                  <article
-                    key={product.id}
-                    className="card-interactive rounded-4xl p-5 animate-scale-in"
-                    style={{ animationDelay: `${index * 0.05}s` }}
-                  >
-                    {/* Product Image/Placeholder */}
-                    <button
-                      type="button"
-                      onClick={() => handleOpenProduct(product.id)}
-                      className="group relative block aspect-[4/3] overflow-hidden rounded-3xl bg-gradient-mesh from-brand-100 via-accent-100 to-brand-200 focus-ring transition-all duration-300 hover:scale-[1.02]"
-                      aria-label={`View details for ${displayName}`}
+                  return (
+                    <article
+                      className="card-interactive rounded-4xl p-5 animate-scale-in"
                     >
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="text-5xl font-black text-brand-600 drop-shadow-lg transition-transform duration-300 group-hover:scale-110">
-                          {initials}
-                        </span>
-                      </div>
-                      {/* Gradient Overlay on Hover */}
-                      <div className="absolute inset-0 bg-gradient-brand opacity-0 group-hover:opacity-10 transition-opacity duration-300" />
-                    </button>
-
-                    {/* Product Info */}
-                    <div className="mt-5 space-y-3">
+                      {/* Product Image/Placeholder with View Transition */}
                       <button
                         type="button"
                         onClick={() => handleOpenProduct(product.id)}
-                        className="text-left group w-full"
+                        className="group relative block aspect-[4/3] overflow-hidden rounded-3xl bg-gradient-mesh from-brand-100 via-accent-100 to-brand-200 focus-ring transition-all duration-300 hover:scale-[1.02]"
+                        aria-label={`View details for ${displayName}`}
+                        style={{ viewTransitionName: `product-image-${product.id}` } as React.CSSProperties}
                       >
-                        <h3 className="text-lg font-black text-slate-900 leading-tight tracking-tight group-hover:text-brand-600 transition-colors duration-200">
-                          {displayName}
-                        </h3>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <span className="text-5xl font-black text-brand-600 drop-shadow-lg transition-transform duration-300 group-hover:scale-110">
+                            {initials}
+                          </span>
+                        </div>
+                        {/* Gradient Overlay on Hover */}
+                        <div className="absolute inset-0 bg-gradient-brand opacity-0 group-hover:opacity-10 transition-opacity duration-300" />
                       </button>
 
-                      {/* Category Badge */}
-                      <div>
-                        <span className={`badge ${
-                          product.category === 'health'
-                            ? 'bg-gradient-to-r from-emerald-100 to-green-100 text-emerald-700 border border-emerald-200'
-                            : 'bg-gradient-to-r from-pink-100 to-rose-100 text-pink-700 border border-pink-200'
-                        }`}>
-                          {product.category === 'health' ? '💊 Health' : '💄 Cosmetic'}
-                        </span>
-                      </div>
+                      {/* Product Info */}
+                      <div className="mt-5 space-y-3">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenProduct(product.id)}
+                          className="text-left group w-full"
+                        >
+                          <h3
+                            className="text-lg font-black text-slate-900 leading-tight tracking-tight group-hover:text-brand-600 transition-colors duration-200"
+                            style={{ viewTransitionName: `product-name-${product.id}` } as React.CSSProperties}
+                          >
+                            {displayName}
+                          </h3>
+                        </button>
 
-                      {/* Tags */}
-                      {product.tags && product.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5">
-                          {product.tags.slice(0, 3).map((tag) => (
-                            <span
-                              key={tag}
-                              className="inline-flex items-center px-2.5 py-1 rounded-full text-2xs font-bold bg-brand-50 text-brand-600 border border-brand-100"
-                            >
-                              {tag}
+                        {/* Category Badge */}
+                        <div>
+                          <span className={`badge ${
+                            product.category === 'health'
+                              ? 'bg-gradient-to-r from-emerald-100 to-green-100 text-emerald-700 border border-emerald-200'
+                              : 'bg-gradient-to-r from-pink-100 to-rose-100 text-pink-700 border border-pink-200'
+                          }`}>
+                            {product.category === 'health' ? '💊 Health' : '💄 Cosmetic'}
+                          </span>
+                        </div>
+
+                        {/* Tags */}
+                        {product.tags && product.tags.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5">
+                            {product.tags.slice(0, 3).map((tag) => (
+                              <span
+                                key={tag}
+                                className="inline-flex items-center px-2.5 py-1 rounded-full text-2xs font-bold bg-brand-50 text-brand-600 border border-brand-100"
+                              >
+                                {tag}
+                              </span>
+                            ))}
+                            {product.tags.length > 3 && (
+                              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-2xs font-bold bg-slate-100 text-slate-500">
+                                +{product.tags.length - 3}
+                              </span>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Save Button */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSaveToLog(product);
+                          }}
+                          disabled={savingProductId === product.id}
+                          className={`w-full rounded-2xl px-5 py-4 text-sm font-bold transition-all duration-300 focus-ring ${
+                            savingProductId === product.id
+                              ? 'bg-gradient-to-r from-emerald-500 to-green-500 text-white shadow-soft-lg scale-105'
+                              : 'bg-gradient-brand text-white shadow-brand hover:shadow-brand-lg hover:scale-105 active:scale-95'
+                          }`}
+                        >
+                          {savingProductId === product.id ? (
+                            <span className="inline-flex items-center gap-2">
+                              <span className="text-lg">✓</span>
+                              Saved!
                             </span>
-                          ))}
-                          {product.tags.length > 3 && (
-                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-2xs font-bold bg-slate-100 text-slate-500">
-                              +{product.tags.length - 3}
+                          ) : (
+                            <span className="inline-flex items-center gap-2">
+                              <span className="text-lg">📝</span>
+                              Save to Log
                             </span>
                           )}
-                        </div>
-                      )}
-
-                      {/* Save Button */}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleSaveToLog(product);
-                        }}
-                        disabled={savingProductId === product.id}
-                        className={`w-full rounded-2xl px-5 py-4 text-sm font-bold transition-all duration-300 focus-ring ${
-                          savingProductId === product.id
-                            ? 'bg-gradient-to-r from-emerald-500 to-green-500 text-white shadow-soft-lg scale-105'
-                            : 'bg-gradient-brand text-white shadow-brand hover:shadow-brand-lg hover:scale-105 active:scale-95'
-                        }`}
-                      >
-                        {savingProductId === product.id ? (
-                          <span className="inline-flex items-center gap-2">
-                            <span className="text-lg">✓</span>
-                            Saved!
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-2">
-                            <span className="text-lg">📝</span>
-                            Save to Log
-                          </span>
-                        )}
-                      </button>
-                    </div>
-                  </article>
-                );
-              })}
+                        </button>
+                      </div>
+                    </article>
+                  );
+                }}
+              />
             </div>
           )}
         </section>

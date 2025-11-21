@@ -1,10 +1,15 @@
 /**
  * Sync System - Downloads bundle from Supabase Storage and updates IndexedDB
  * Uses ETag for efficient updates
+ *
+ * Two sync methods available:
+ * 1. syncNow() - Direct sync on main thread (legacy, can block UI)
+ * 2. syncWithWorker() - Web Worker sync (recommended, non-blocking UI)
  */
 
 import { db, setMeta, getMeta, type Product } from './db';
 import pako from 'pako';
+import type { WorkerSyncResult, WorkerSyncRequest } from './workers/sync.worker';
 
 // Fallback bundle URL - can be overridden in settings or via environment variable
 const FALLBACK_BUNDLE_URL = 'https://hqztadklpalhrukkrppg.supabase.co/storage/v1/object/public/bundles/bundle.json.gz';
@@ -244,6 +249,120 @@ export async function syncNow(): Promise<SyncResult> {
       updated: false,
       error: userFriendlyError,
     };
+  }
+}
+
+/**
+ * Web Worker-based sync - Keeps UI responsive during sync
+ *
+ * Moves heavy operations (fetch, decompress, parse, transform) to a web worker.
+ * Only IndexedDB writes happen on the main thread (required limitation).
+ *
+ * @returns SyncResult with success/error status
+ */
+export async function syncWithWorker(): Promise<SyncResult> {
+  // Check if web workers are supported
+  if (typeof Worker === 'undefined') {
+    console.warn('[Sync] Web Workers not supported, falling back to main thread sync');
+    return syncNow();
+  }
+
+  try {
+    const storedUrl = (await getMeta('bundleUrl')) as string | null;
+    const bundleUrl = storedUrl || DEFAULT_BUNDLE_URL;
+    const storedEtag = (await getMeta('lastEtag')) as string | null;
+
+    if (!bundleUrl) {
+      return {
+        success: false,
+        updated: false,
+        error: 'Configuration error: Bundle URL not configured.',
+      };
+    }
+
+    console.log('[Sync] Starting worker-based sync from:', bundleUrl);
+
+    // Create and use web worker
+    const result = await new Promise<WorkerSyncResult>((resolve, reject) => {
+      // Create worker with proper URL for Next.js
+      const worker = new Worker(
+        new URL('./workers/sync.worker.ts', import.meta.url),
+        { type: 'module' }
+      );
+
+      // Handle worker response
+      worker.onmessage = (event: MessageEvent<WorkerSyncResult>) => {
+        worker.terminate();
+        resolve(event.data);
+      };
+
+      // Handle worker errors
+      worker.onerror = (error) => {
+        worker.terminate();
+        reject(new Error(`Worker error: ${error.message}`));
+      };
+
+      // Send sync request to worker
+      const request: WorkerSyncRequest = {
+        type: 'sync',
+        bundleUrl,
+        etag: storedEtag || undefined,
+      };
+      worker.postMessage(request);
+    });
+
+    // Handle not-modified response (304)
+    if (result.notModified) {
+      console.log('[Sync] Bundle unchanged (304), skipping database update');
+      return {
+        success: true,
+        updated: false,
+        productCount: await db.products.count(),
+        etag: storedEtag || undefined,
+      };
+    }
+
+    // Handle worker errors
+    if (!result.success || !result.products) {
+      return {
+        success: false,
+        updated: false,
+        error: result.error || 'Unknown error during sync',
+      };
+    }
+
+    console.log(`[Sync] Worker returned ${result.products.length} products, writing to IndexedDB...`);
+
+    // Write products to IndexedDB (must happen on main thread)
+    await db.transaction('rw', db.products, async () => {
+      await db.products.clear();
+      await db.products.bulkAdd(result.products as unknown as Product[]);
+    });
+
+    // Update metadata
+    await setMeta('lastSync', new Date().toISOString());
+    if (result.newEtag) {
+      await setMeta('lastEtag', result.newEtag);
+    }
+    if (result.schemaVersion) {
+      await setMeta('schemaVersion', result.schemaVersion);
+    }
+
+    console.log(`[Sync] Complete: ${result.productCount} products synced via worker`);
+
+    return {
+      success: true,
+      updated: true,
+      productCount: result.productCount,
+      etag: result.newEtag,
+    };
+
+  } catch (error) {
+    console.error('[Sync] Worker sync error:', error);
+
+    // Fallback to main thread sync if worker fails
+    console.log('[Sync] Falling back to main thread sync...');
+    return syncNow();
   }
 }
 

@@ -1,9 +1,22 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { db, type Product } from '@/lib/db';
 import { useAppStore, type Language } from '@/lib/store';
+
+// Helper for view transitions
+const navigateWithTransition = (router: ReturnType<typeof useRouter>, path: string) => {
+  const navigate = () => router.push(path);
+
+  // Use View Transitions API if available for smooth animations
+  if (typeof document !== 'undefined' && 'startViewTransition' in document) {
+    (document as Document & { startViewTransition: (callback: () => void) => void })
+      .startViewTransition(navigate);
+  } else {
+    navigate();
+  }
+};
 
 const LANGUAGE_FLAGS = [
   { code: 'en' as Language, flag: '🇺🇸', label: 'EN' },
@@ -63,7 +76,7 @@ export default function ProductDetailPage() {
           <p className="text-slate-600">This product doesn't exist or has been removed.</p>
         </div>
         <button
-          onClick={() => router.push('/')}
+          onClick={() => navigateWithTransition(router, '/')}
           className="btn-primary px-8 py-4 shadow-brand-lg"
         >
           ← Back to Library
@@ -109,7 +122,7 @@ export default function ProductDetailPage() {
       setSaveStatus('success');
 
       setTimeout(() => {
-        router.push('/');
+        navigateWithTransition(router, '/');
       }, 800);
     } catch (error) {
       console.error('Error saving log:', error);
@@ -129,7 +142,7 @@ export default function ProductDetailPage() {
         navigator.vibrate(50);
       }
 
-      router.push('/');
+      navigateWithTransition(router, '/');
     } catch (error) {
       console.error('Error deleting product:', error);
       alert('Failed to delete product. Please try again.');
@@ -150,7 +163,7 @@ export default function ProductDetailPage() {
       <div className="sticky top-0 z-20 glass-strong border-b border-white/70 backdrop-blur-2xl shadow-soft animate-slide-down">
         <div className="mx-auto flex h-18 max-w-5xl items-center gap-4 px-6">
           <button
-            onClick={() => router.push('/')}
+            onClick={() => navigateWithTransition(router, '/')}
             className="group flex items-center gap-2 rounded-full glass px-5 py-2.5 text-sm font-bold text-slate-700 transition-all duration-300 hover:scale-105 hover:shadow-soft active:scale-95 focus-ring"
           >
             <svg className="h-5 w-5 transition-transform duration-300 group-hover:-translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -161,9 +174,12 @@ export default function ProductDetailPage() {
         </div>
       </div>
 
-      {/* Product Hero Section */}
+      {/* Product Hero Section with View Transition */}
       <div className="relative mx-auto mt-8 max-w-5xl px-6 animate-scale-in">
-        <div className="relative overflow-hidden rounded-5xl glass-strong p-8 shadow-brand-lg">
+        <div
+          className="relative overflow-hidden rounded-5xl glass-strong p-8 shadow-brand-lg"
+          style={{ viewTransitionName: `product-image-${product.id}` } as React.CSSProperties}
+        >
           {/* Decorative Background Gradient */}
           <div className="absolute inset-0 bg-gradient-mesh from-brand-100 via-accent-100 to-brand-200 opacity-30" />
 
@@ -201,7 +217,10 @@ export default function ProductDetailPage() {
         {/* Product Info Card */}
         <div className="card rounded-5xl p-8 shadow-brand-lg animate-scale-in" style={{ animationDelay: '0.15s' }}>
           <div className="space-y-4">
-            <h1 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight leading-tight">
+            <h1
+              className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight leading-tight"
+              style={{ viewTransitionName: `product-name-${product.id}` } as React.CSSProperties}
+            >
               {currentName}
             </h1>
 

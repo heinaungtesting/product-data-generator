@@ -279,3 +279,46 @@
   @apply animate-pulse bg-gradient-to-r from-slate-100 via-slate-200 to-slate-100 bg-[length:200%_100%];
   animation: shimmer 2s infinite;
 }
+
+/* View Transitions API Support */
+@supports (view-transition-name: test) {
+  /* Enable view transitions for root */
+  ::view-transition {
+    navigation: auto;
+  }
+
+  /* Product image transitions */
+  ::view-transition-old(product-image-*),
+  ::view-transition-new(product-image-*) {
+    animation-duration: 0.3s;
+    animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Product name transitions */
+  ::view-transition-old(product-name-*),
+  ::view-transition-new(product-name-*) {
+    animation-duration: 0.25s;
+    animation-timing-function: ease-out;
+  }
+
+  /* Default page transition */
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 0.2s;
+    animation-timing-function: ease-in-out;
+  }
+
+  /* Prevent layout shift during transitions */
+  [style*="view-transition-name"] {
+    contain: layout;
+  }
+}
+
+/* Reduced motion: Disable view transitions for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
