@@ -40,7 +40,11 @@ export default function ProductDetailPage() {
   }, [params.id]);
 
   useEffect(() => {
-    setSaveStatus('idle');
+    // Reset save status when product changes
+    const timeoutId = setTimeout(() => {
+      setSaveStatus('idle');
+    }, 0);
+    return () => clearTimeout(timeoutId);
   }, [product?.id]);
 
   if (loading) {
@@ -60,7 +64,7 @@ export default function ProductDetailPage() {
         <div className="text-7xl animate-float">📦</div>
         <div className="space-y-3">
           <h2 className="text-2xl font-bold text-slate-900">Product not found</h2>
-          <p className="text-slate-600">This product doesn't exist or has been removed.</p>
+          <p className="text-slate-600">This product doesn&apos;t exist or has been removed.</p>
         </div>
         <button
           onClick={() => router.push('/')}
@@ -354,7 +358,7 @@ export default function ProductDetailPage() {
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-2">
-                  <span className="text-lg">📝</span>
+                  <span className="text-lg">���</span>
                   Add to Log
                 </span>
               )}
