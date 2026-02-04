@@ -8,6 +8,7 @@ import { useLiveQuery } from '@/lib/hooks';
 import { db, type Product } from '@/lib/db';
 import { useAppStore, type Language } from '@/lib/store';
 import { syncNow } from '@/lib/sync';
+import { LANGUAGE_OPTIONS } from '@/lib/constants';
 
 export default function HomePage() {
   const router = useRouter();
@@ -28,14 +29,6 @@ export default function HomePage() {
   const [categoryFilter, setCategoryFilter] = useState<'all' | 'health' | 'cosmetic'>('all');
   const [savingProductId, setSavingProductId] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<'recent' | 'name' | 'points'>('recent');
-
-  const languageOptions: Array<{ code: Language; label: string; flag: string }> = [
-    { code: 'en', label: 'English', flag: '🇺🇸' },
-    { code: 'ja', label: '日本語', flag: '🇯🇵' },
-    { code: 'zh', label: '中文', flag: '🇨🇳' },
-    { code: 'th', label: 'ไทย', flag: '🇹🇭' },
-    { code: 'ko', label: '한국어', flag: '🇰🇷' },
-  ];
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -226,36 +219,33 @@ export default function HomePage() {
   return (
     <AppShell>
       <div className="relative space-y-7">
+        {/* Welcome Section */}
+        <section className="text-center space-y-3 animate-scale-in">
+          <h1 className="text-2xl font-black text-slate-900 leading-tight">
+            {t('welcome')}
+          </h1>
+          <p className="text-base text-slate-600 leading-relaxed">
+            {t('welcomeSubtitle')}
+          </p>
+        </section>
+
+        {/* Tourist Tip */}
+        <section className="glass-strong rounded-3xl p-4 shadow-soft-lg animate-scale-in" style={{ animationDelay: '0.05s' }}>
+          <p className="text-sm font-semibold text-slate-700 text-center">
+            {t('touristTip')}
+          </p>
+        </section>
+
         {/* Search Section with Glass Effect */}
-        <section className="space-y-5 animate-scale-in">
-          {/* Search Input */}
-          <div className="relative group">
-            <div className="absolute -inset-0.5 bg-gradient-brand rounded-[2rem] opacity-0 group-hover:opacity-20 blur-lg transition-opacity duration-300" />
-            <div className="relative">
-              <input
-                type="search"
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                placeholder="Search products, effects, ingredients..."
-                className="input-field h-16 text-base pr-14 shadow-soft-lg"
-                aria-label="Search products by name, effects, or ingredients"
-              />
-              <div className="absolute right-5 top-1/2 -translate-y-1/2 p-2 rounded-full bg-brand-100">
-                <svg
-                  className="h-5 w-5 text-brand-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </div>
-            </div>
-          </div>
+        <section className="space-y-5 animate-scale-in" style={{ animationDelay: '0.1s' }}>
+          {/* Language Selector Header */}
+          <h2 className="text-lg font-bold text-slate-800 text-center">
+            {t('chooseLanguage')}
+          </h2>
 
           {/* Language Selector Pills */}
-          <div className="flex flex-wrap items-center gap-2.5">
-            {languageOptions.map((option) => (
+          <div className="flex flex-wrap items-center justify-center gap-2.5">
+            {LANGUAGE_OPTIONS.map((option) => (
               <button
                 key={option.code}
                 type="button"
@@ -270,6 +260,31 @@ export default function HomePage() {
                 <span>{option.label}</span>
               </button>
             ))}
+          </div>
+
+          {/* Search Input */}
+          <div className="relative group">
+            <div className="absolute -inset-0.5 bg-gradient-brand rounded-[2rem] opacity-0 group-hover:opacity-20 blur-lg transition-opacity duration-300" />
+            <div className="relative">
+              <input
+                type="search"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                placeholder="Search... (vitamin, 维生素, 비타민, วิตามิน)"
+                className="input-field h-16 text-base pr-14 shadow-soft-lg"
+                aria-label="Search products by name, effects, or ingredients"
+              />
+              <div className="absolute right-5 top-1/2 -translate-y-1/2 p-2 rounded-full bg-brand-100">
+                <svg
+                  className="h-5 w-5 text-brand-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+            </div>
           </div>
 
           {/* Category & Sort Controls */}
@@ -288,7 +303,7 @@ export default function HomePage() {
                         : 'bg-white/70 text-slate-600 hover:bg-white hover:scale-105 active:scale-95 border border-slate-200/50'
                     }`}
                   >
-                    {cat === 'health' ? '💊 Health' : cat === 'cosmetic' ? '💄 Cosmetic' : '✨ All'}
+                    {cat === 'health' ? '💊 Health / 健康 / 건강 / สุขภาพ' : cat === 'cosmetic' ? '💄 Beauty / 美容 / 뷰티 / ความงาม' : '✨ All / 全部 / 전체 / ทั้งหมด'}
                   </button>
                 ))}
               </div>
@@ -358,9 +373,9 @@ export default function HomePage() {
               {totalProducts === 0 ? (
                 <>
                   <div className="mb-6 text-6xl animate-float">📦</div>
-                  <h2 className="text-2xl font-bold text-slate-900 text-gradient">Welcome to MyApp!</h2>
+                  <h2 className="text-2xl font-bold text-slate-900 text-gradient">{t('welcome')}</h2>
                   <p className="mt-4 text-base text-slate-600 leading-relaxed max-w-md mx-auto">
-                    Your product catalog is empty. Click the button below to sync and load products from the server.
+                    {t('welcomeSubtitle')}
                   </p>
                   <button
                     onClick={handleSync}
@@ -383,13 +398,9 @@ export default function HomePage() {
               ) : searchQuery || categoryFilter !== 'all' ? (
                 <>
                   <div className="mb-6 text-6xl animate-float">🔍</div>
-                  <h2 className="text-2xl font-bold text-slate-900">No matching products</h2>
+                  <h2 className="text-2xl font-bold text-slate-900">{t('noProductsFound')}</h2>
                   <p className="mt-4 text-sm text-slate-600 leading-relaxed max-w-md mx-auto">
-                    {searchQuery && categoryFilter !== 'all'
-                      ? `No products found matching "${searchQuery}" in ${categoryFilter} category.`
-                      : searchQuery
-                      ? `No products found matching "${searchQuery}".`
-                      : `No ${categoryFilter} products found.`}
+                    {t('tryDifferentSearch')}
                   </p>
                   <div className="mt-8 flex flex-wrap gap-3 justify-center">
                     {searchQuery && (
@@ -491,6 +502,14 @@ export default function HomePage() {
                         </span>
                       </div>
 
+                      {/* Description Preview */}
+                      {product.description?.[language] && (
+                        <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
+                          {product.description[language].substring(0, 60)}
+                          {product.description[language].length > 60 ? '...' : ''}
+                        </p>
+                      )}
+
                       {/* Tags */}
                       {product.tags && product.tags.length > 0 && (
                         <div className="flex flex-wrap gap-1.5">
@@ -526,12 +545,11 @@ export default function HomePage() {
                         {savingProductId === product.id ? (
                           <span className="inline-flex items-center gap-2">
                             <span className="text-lg">✓</span>
-                            Saved!
+                            {t('added')}
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-2">
-                            <span className="text-lg">📝</span>
-                            Save to Log
+                            {t('addToList')}
                           </span>
                         )}
                       </button>
