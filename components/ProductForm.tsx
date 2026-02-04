@@ -36,6 +36,7 @@ type ProductFormProps = {
   statusMessage?: string | null;
   autosaveStatus?: string | null;
   onClearValidation?: (paths: string[]) => void;
+  availableProducts?: Product[];
 };
 
 export function ProductForm({
@@ -51,6 +52,7 @@ export function ProductForm({
   statusMessage,
   autosaveStatus,
   onClearValidation,
+  availableProducts = [],
 }: ProductFormProps) {
   const localizedErrorKeys = useMemo(() => {
     const keys = new Set<string>();
@@ -286,7 +288,13 @@ export function ProductForm({
             }}
           >
             <option value="">None</option>
-            {/* Products will be populated dynamically when needed */}
+            {availableProducts
+              ?.filter((p) => p.id !== product.id)
+              .map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name?.en || p.name?.ja || `Product #${p.id}`}
+                </option>
+              ))}
           </select>
           <span className="text-xs text-slate-500 dark:text-slate-400">
             Select another product to recommend as an alternative

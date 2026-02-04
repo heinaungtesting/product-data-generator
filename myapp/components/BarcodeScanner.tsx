@@ -13,6 +13,7 @@ export default function BarcodeScanner({ onScanSuccess, onClose }: BarcodeScanne
   const [error, setError] = useState<string | null>(null);
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const hasStartedRef = useRef(false);
+  const hasScannedRef = useRef(false);
 
   useEffect(() => {
     if (hasStartedRef.current) return;
@@ -29,9 +30,21 @@ export default function BarcodeScanner({ onScanSuccess, onClose }: BarcodeScanne
             fps: 10,
             qrbox: { width: 250, height: 250 },
           },
-          (decodedText) => {
+          async (decodedText) => {
             // Success callback
+            if (hasScannedRef.current) return; // Prevent multiple scans
+            hasScannedRef.current = true;
+            
             console.log('Barcode scanned:', decodedText);
+            
+            // Stop scanner before calling success callback
+            try {
+              await scanner.stop();
+              await scanner.clear();
+            } catch (err) {
+              console.error('Error stopping scanner:', err);
+            }
+            
             onScanSuccess(decodedText);
           },
           () => {

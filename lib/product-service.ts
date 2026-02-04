@@ -257,8 +257,18 @@ const upsertSalesMessages = async (tx: Prisma.TransactionClient, product: Produc
   await Promise.all(
     LANGUAGES.map((lang) => {
       const message = product.salesMessage?.[lang];
-      if (!message) {
+      // If no value is provided for this language, do nothing.
+      if (message === undefined) {
         return Promise.resolve();
+      }
+      // If the value is an empty string, treat this as clearing the message.
+      if (message === "") {
+        return tx.productSalesMessage.deleteMany({
+          where: {
+            productId: product.id,
+            language: lang,
+          },
+        });
       }
       return tx.productSalesMessage.upsert({
         where: {

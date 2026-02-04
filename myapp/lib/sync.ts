@@ -34,17 +34,30 @@ type RawTextEntry = {
   side_effects?: string;
   goodFor?: string;
   good_for?: string;
+  warnings?: string;
 };
 
 type RawTagEntry = string | { id?: string } | { tag_id?: string } | null | undefined;
+
+type RawSalesMessageEntry = {
+  language?: string;
+  lang?: string;
+  message?: string;
+};
 
 interface BundleProduct {
   id: string;
   category: 'health' | 'cosmetic';
   pointValue?: number;
   point_value?: number;
+  barcode?: string;
+  image?: string;
+  recommendedProductId?: string;
+  recommended_product_id?: string;
   texts?: RawTextEntry[];
   tags?: RawTagEntry[];
+  salesMessages?: RawSalesMessageEntry[];
+  sales_messages?: RawSalesMessageEntry[];
   createdAt?: string;
   created_at?: string;
   updatedAt?: string;
@@ -137,6 +150,7 @@ export async function syncNow(): Promise<SyncResult> {
       const effects: Record<string, string> = {};
       const sideEffects: Record<string, string> = {};
       const goodFor: Record<string, string> = {};
+      const warnings: Record<string, string> = {};
 
       texts.forEach(text => {
         const languageKey = text.language || text.lang || 'en';
@@ -155,6 +169,19 @@ export async function syncNow(): Promise<SyncResult> {
         }
         if (text.goodFor || text.good_for) {
           goodFor[languageKey] = text.goodFor ?? text.good_for ?? '';
+        }
+        if (text.warnings) {
+          warnings[languageKey] = text.warnings;
+        }
+      });
+
+      // Convert salesMessages array to language-keyed object
+      const salesMessages = bundleProduct.salesMessages ?? bundleProduct.sales_messages ?? [];
+      const salesMessage: Record<string, string> = {};
+      salesMessages.forEach(msg => {
+        const languageKey = msg.language || msg.lang || 'en';
+        if (msg.message) {
+          salesMessage[languageKey] = msg.message;
         }
       });
 
@@ -183,11 +210,16 @@ export async function syncNow(): Promise<SyncResult> {
         id: bundleProduct.id,
         category: bundleProduct.category,
         pointValue: derivedPoint,
+        barcode: bundleProduct.barcode,
+        image: bundleProduct.image,
+        recommendedProductId: bundleProduct.recommendedProductId ?? bundleProduct.recommended_product_id,
         name,
         description,
         effects,
         sideEffects,
         goodFor,
+        warnings,
+        salesMessage,
         tags,
         updatedAt: bundleProduct.updatedAt ?? bundleProduct.updated_at ?? new Date().toISOString(),
       };

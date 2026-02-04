@@ -24,15 +24,19 @@ model Product {
   id                    String          @id @default(uuid())
   category              ProductCategory
   pointValue            Int
-  barcode               String?
+  barcode               String?         @unique
+  image                 String?
   recommendedProductId  String?
   contentUpdatedAt      DateTime
   createdAt             DateTime        @default(now())
   updatedAt             DateTime        @updatedAt
 
-  texts         ProductText[]
-  tags          ProductTag[]
-  salesMessages ProductSalesMessage[]
+  texts              ProductText[]
+  tags               ProductTag[]
+  salesMessages      ProductSalesMessage[]
+  warnings           ProductWarning[]
+  recommendedProduct Product?          @relation("RecommendedProduct", fields: [recommendedProductId], references: [id], onDelete: SetNull)
+  recommendedFor     Product[]         @relation("RecommendedProduct")
 }
 
 model ProductText {
