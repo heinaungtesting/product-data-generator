@@ -123,6 +123,8 @@ type ProductRecord = {
   id: string;
   category: string;
   pointValue: number;
+  barcode: string | null;
+  recommendedProductId: string | null;
   contentUpdatedAt: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -143,6 +145,12 @@ type ProductRecord = {
       id: number;
       name: string;
     };
+  }>;
+  salesMessages: Array<{
+    id: number;
+    productId: string;
+    language: string;
+    message: string;
   }>;
 };
 
@@ -166,11 +174,20 @@ const mapProductRecord = (record: ProductRecord): Product => {
 
   const tags = record.tags.map((entry) => entry.tag.name);
 
+  const salesMessage = emptyLocalizedField();
+  record.salesMessages.forEach((msg) => {
+    const lang = msg.language as LanguageCode;
+    salesMessage[lang] = msg.message;
+  });
+
   return productSchema.parse(
     fillPlaceholders({
       id: record.id,
       category: record.category as "health" | "cosmetic",
       pointValue: record.pointValue,
+      barcode: record.barcode ?? undefined,
+      recommendedProductId: record.recommendedProductId ?? null,
+      salesMessage,
       tags,
       name: localized.name,
       description: localized.description,
@@ -233,6 +250,36 @@ const upsertTexts = async (tx: Prisma.TransactionClient, product: Product) => {
   );
 };
 
+const upsertSalesMessages = async (tx: Prisma.TransactionClient, product: Product) => {
+  if (!product.salesMessage) {
+    return;
+  }
+  await Promise.all(
+    LANGUAGES.map((lang) => {
+      const message = product.salesMessage?.[lang];
+      if (!message) {
+        return Promise.resolve();
+      }
+      return tx.productSalesMessage.upsert({
+        where: {
+          productId_language: {
+            productId: product.id,
+            language: lang,
+          },
+        },
+        create: {
+          productId: product.id,
+          language: lang,
+          message,
+        },
+        update: {
+          message,
+        },
+      });
+    }),
+  );
+};
+
 export const saveProduct = async (input: Product, tx?: Prisma.TransactionClient) => {
   const parsed = productSchema.parse(
     fillPlaceholders({
@@ -259,17 +306,22 @@ export const saveProduct = async (input: Product, tx?: Prisma.TransactionClient)
       id: parsed.id,
       category: parsed.category,
       pointValue: parsed.pointValue,
+      barcode: parsed.barcode ?? null,
+      recommendedProductId: parsed.recommendedProductId ?? null,
       contentUpdatedAt: new Date(parsed.updatedAt),
     },
     update: {
       category: parsed.category,
       pointValue: parsed.pointValue,
+      barcode: parsed.barcode ?? null,
+      recommendedProductId: parsed.recommendedProductId ?? null,
       contentUpdatedAt: new Date(parsed.updatedAt),
     },
   });
 
   await upsertTexts(executor, parsed);
   await upsertTags(executor, product.id, parsed.tags);
+  await upsertSalesMessages(executor, parsed);
 
   return product.id;
 };
@@ -328,6 +380,7 @@ export const listProducts = async (
     include: {
       texts: true,
       tags: { include: { tag: true } },
+      salesMessages: true,
     },
     orderBy: { createdAt: "desc" },
   });

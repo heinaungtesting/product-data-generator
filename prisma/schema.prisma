@@ -21,15 +21,18 @@ enum ProductCategory {
 }
 
 model Product {
-  id               String          @id @default(uuid())
-  category         ProductCategory
-  pointValue       Int
-  contentUpdatedAt DateTime
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
+  id                    String          @id @default(uuid())
+  category              ProductCategory
+  pointValue            Int
+  barcode               String?
+  recommendedProductId  String?
+  contentUpdatedAt      DateTime
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
 
-  texts ProductText[]
-  tags  ProductTag[]
+  texts         ProductText[]
+  tags          ProductTag[]
+  salesMessages ProductSalesMessage[]
 }
 
 model ProductText {
@@ -62,6 +65,17 @@ model ProductTag {
   tag     Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
 
   @@id([productId, tagId])
+}
+
+model ProductSalesMessage {
+  id       Int      @id @default(autoincrement())
+  productId String
+  language Language
+  message  String
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, language])
 }
 
 model Draft {

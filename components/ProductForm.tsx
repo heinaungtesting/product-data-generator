@@ -153,6 +153,23 @@ export function ProductForm({
             }}
           />
         </label>
+
+        <label className="flex flex-col gap-2 text-sm font-medium text-slate-700 dark:text-slate-200">
+          Barcode (JAN/EAN)
+          <input
+            type="text"
+            placeholder="e.g., 4901234567890"
+            className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-blue-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+            value={product.barcode ?? ""}
+            onChange={(event) => {
+              clearFieldError(["barcode"]);
+              onChange({
+                ...product,
+                barcode: event.target.value || undefined,
+              });
+            }}
+          />
+        </label>
       </div>
 
       <div className="grid gap-6">
@@ -244,6 +261,75 @@ export function ProductForm({
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Recommendation Section */}
+      <div className="space-y-4 rounded-lg bg-gradient-to-br from-amber-50 to-yellow-50 p-4 dark:from-amber-900/20 dark:to-yellow-900/20">
+        <div className="flex items-center gap-2">
+          <span className="text-lg">⭐</span>
+          <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+            Staff Recommendation
+          </span>
+        </div>
+
+        <label className="flex flex-col gap-2 text-sm font-medium text-slate-700 dark:text-slate-200">
+          Recommended Alternative Product
+          <select
+            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-blue-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+            value={product.recommendedProductId ?? ""}
+            onChange={(event) => {
+              clearFieldError(["recommendedProductId"]);
+              onChange({
+                ...product,
+                recommendedProductId: event.target.value || null,
+              });
+            }}
+          >
+            <option value="">None</option>
+            {/* Products will be populated dynamically when needed */}
+          </select>
+          <span className="text-xs text-slate-500 dark:text-slate-400">
+            Select another product to recommend as an alternative
+          </span>
+        </label>
+
+        <div className="space-y-3">
+          <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
+            Sales Message (Why recommend this?)
+          </span>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {LANGUAGES.map((lang) => {
+              const value = product.salesMessage?.[lang] ?? "";
+              const labelForLang = LANGUAGE_LABELS[lang];
+              const inputId = `salesMessage-${lang}`;
+
+              return (
+                <label
+                  key={lang}
+                  htmlFor={inputId}
+                  className="flex flex-col gap-2 text-xs font-medium uppercase tracking-wide text-slate-600 dark:text-slate-300"
+                >
+                  {labelForLang}
+                  <textarea
+                    id={inputId}
+                    className="min-h-[60px] rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-0 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                    value={value}
+                    placeholder="e.g., Double strength, better value!"
+                    onChange={(event) =>
+                      onChange({
+                        ...product,
+                        salesMessage: {
+                          ...product.salesMessage,
+                          [lang]: event.target.value,
+                        },
+                      })
+                    }
+                  />
+                </label>
+              );
+            })}
+          </div>
+        </div>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
