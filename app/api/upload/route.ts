@@ -19,6 +19,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No product ID provided" }, { status: 400 });
     }
 
+    // Validate productId to prevent path traversal
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(productId)) {
+      return NextResponse.json(
+        { error: "Invalid product ID format" },
+        { status: 400 }
+      );
+    }
+
     // Validate file type
     if (!ALLOWED_TYPES.includes(file.type)) {
       return NextResponse.json(

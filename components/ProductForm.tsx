@@ -3,6 +3,16 @@ import type { FormEvent, ChangeEvent } from "react";
 import type { Product } from "@/schema";
 import { LANGUAGES, createEmptyProduct } from "@/schema";
 
+// Helper to validate image paths (must be relative path starting with /)
+const isValidImagePath = (path: string | undefined): boolean => {
+  if (!path) return false;
+  // Must start with / and be a relative path (no protocol)
+  if (!path.startsWith("/")) return false;
+  // Must not contain dangerous patterns
+  if (path.includes("../") || path.includes("javascript:") || path.includes("data:")) return false;
+  return true;
+};
+
 const LANGUAGE_LABELS: Record<(typeof LANGUAGES)[number], string> = {
   ja: "Japanese",
   en: "English",
@@ -209,7 +219,7 @@ export function ProductForm({
           Product Image
         </span>
         
-        {product.image ? (
+        {product.image && isValidImagePath(product.image) ? (
           <div className="space-y-3">
             <div className="relative aspect-video overflow-hidden rounded-lg bg-slate-100 dark:bg-slate-900">
               <img

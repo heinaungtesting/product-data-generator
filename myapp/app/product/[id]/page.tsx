@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { db, type Product } from '@/lib/db';
 import { useAppStore, type Language } from '@/lib/store';
+import { isValidImagePath } from '@/lib/image-utils';
 
 const LANGUAGE_FLAGS = [
   { code: 'en' as Language, flag: '🇺🇸', label: 'EN' },
@@ -171,7 +172,7 @@ export default function ProductDetailPage() {
           )}
 
           <div className="relative flex items-center justify-center aspect-[4/3] max-h-96">
-            {product.image ? (
+            {product.image && isValidImagePath(product.image) ? (
               <img
                 src={product.image}
                 alt={currentName}

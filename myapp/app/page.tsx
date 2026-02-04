@@ -8,6 +8,7 @@ import { useLiveQuery } from '@/lib/hooks';
 import { db, type Product } from '@/lib/db';
 import { useAppStore, type Language } from '@/lib/store';
 import { syncNow } from '@/lib/sync';
+import { isValidImagePath } from '@/lib/image-utils';
 
 export default function HomePage() {
   const router = useRouter();
@@ -459,7 +460,7 @@ export default function HomePage() {
                       className="group relative block aspect-[4/3] overflow-hidden rounded-3xl bg-gradient-mesh from-brand-100 via-accent-100 to-brand-200 focus-ring transition-all duration-300 hover:scale-[1.02]"
                       aria-label={`View details for ${displayName}`}
                     >
-                      {product.image ? (
+                      {product.image && isValidImagePath(product.image) ? (
                         <img 
                           src={product.image} 
                           alt={displayName}
