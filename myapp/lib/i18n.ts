@@ -32,6 +32,16 @@ const resources = {
       categories: 'Categories',
       health: 'Health',
       cosmetic: 'Cosmetic',
+      
+      // Tourist-friendly messages
+      welcome: 'Welcome! 🌏 Japanese Drugstore Product Guide',
+      welcomeSubtitle: 'Find health & beauty products with descriptions in your language',
+      chooseLanguage: '🌍 Choose Your Language',
+      touristTip: '💡 Tip: Show this screen to store staff for assistance',
+      addToList: '📋 Add to My List',
+      added: '✓ Added!',
+      noProductsFound: 'No products found',
+      tryDifferentSearch: 'Try a different search or browse all products',
 
       // Details
       description: 'Description',
@@ -105,6 +115,16 @@ const resources = {
       syncing: '同期中...',
       syncSuccess: '同期完了',
       offline: 'オフライン',
+      
+      // Tourist-friendly messages
+      welcome: 'ようこそ！🌏 日本のドラッグストア製品ガイド',
+      welcomeSubtitle: 'あなたの言語で健康・美容製品を検索',
+      chooseLanguage: '🌍 言語を選択',
+      touristTip: '💡 ヒント：店員にこの画面を見せてください',
+      addToList: '📋 リストに追加',
+      added: '✓ 追加しました！',
+      noProductsFound: '製品が見つかりません',
+      tryDifferentSearch: '別の検索を試すか、すべての製品を閲覧してください',
     },
   },
   th: {
@@ -124,6 +144,16 @@ const resources = {
       sideEffects: 'ผลข้างเคียง',
       save: 'บันทึก',
       cancel: 'ยกเลิก',
+      
+      // Tourist-friendly messages
+      welcome: 'ยินดีต้อนรับ! 🌏 คู่มือผลิตภัณฑ์ร้านขายยาญี่ปุ่น',
+      welcomeSubtitle: 'ค้นหาผลิตภัณฑ์สุขภาพและความงามพร้อมคำอธิบายในภาษาของคุณ',
+      chooseLanguage: '🌍 เลือกภาษาของคุณ',
+      touristTip: '💡 เคล็ดลับ: แสดงหน้าจอนี้ให้พนักงานดู',
+      addToList: '📋 เพิ่มในรายการของฉัน',
+      added: '✓ เพิ่มแล้ว!',
+      noProductsFound: 'ไม่พบผลิตภัณฑ์',
+      tryDifferentSearch: 'ลองค้นหาอื่นหรือเรียกดูผลิตภัณฑ์ทั้งหมด',
     },
   },
   ko: {
@@ -143,6 +173,16 @@ const resources = {
       sideEffects: '부작용',
       save: '저장',
       cancel: '취소',
+      
+      // Tourist-friendly messages
+      welcome: '환영합니다! 🌏 일본 드러그스토어 제품 가이드',
+      welcomeSubtitle: '귀하의 언어로 건강 및 미용 제품을 찾아보세요',
+      chooseLanguage: '🌍 언어 선택',
+      touristTip: '💡 팁: 직원에게 이 화면을 보여주세요',
+      addToList: '📋 내 목록에 추가',
+      added: '✓ 추가됨!',
+      noProductsFound: '제품을 찾을 수 없습니다',
+      tryDifferentSearch: '다른 검색을 시도하거나 모든 제품을 찾아보세요',
     },
   },
   zh: {
@@ -162,6 +202,16 @@ const resources = {
       sideEffects: '副作用',
       save: '保存',
       cancel: '取消',
+      
+      // Tourist-friendly messages
+      welcome: '欢迎！🌏 日本药妆店产品指南',
+      welcomeSubtitle: '用您的语言查找健康和美容产品说明',
+      chooseLanguage: '🌍 选择您的语言',
+      touristTip: '💡 提示：向店员展示此屏幕以获得帮助',
+      addToList: '📋 添加到我的列表',
+      added: '✓ 已添加！',
+      noProductsFound: '未找到产品',
+      tryDifferentSearch: '尝试不同的搜索或浏览所有产品',
     },
   },
 };

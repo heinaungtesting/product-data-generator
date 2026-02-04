@@ -24,6 +24,16 @@ export default function TopBar() {
 
   return (
     <header className="relative z-40 -mx-5 px-5 animate-slide-down">
+      {/* App Title */}
+      <div className="text-center mb-4 space-y-1">
+        <h1 className="text-xl font-black text-slate-900 leading-tight">
+          🇯🇵 Japan Drugstore Guide
+        </h1>
+        <p className="text-xs font-semibold text-slate-600">
+          🌐 Multilingual Product Info
+        </p>
+      </div>
+
       <nav className="relative overflow-hidden rounded-[2rem] glass-strong p-2 shadow-brand-lg">
         {/* Gradient Highlight Bar */}
         <div className="absolute inset-0 bg-gradient-to-r from-brand-500/5 via-accent-500/5 to-brand-500/5 opacity-50" />

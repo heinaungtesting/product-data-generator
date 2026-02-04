@@ -2,18 +2,36 @@
 
 import { ReactNode } from 'react';
 import TopBar from './TopBar';
+import { useAppStore } from '@/lib/store';
 
 interface AppShellProps {
   children: ReactNode;
 }
 
 export default function AppShell({ children }: AppShellProps) {
+  const { language } = useAppStore();
+  
+  const languageFlags: Record<string, string> = {
+    en: '🇺🇸',
+    zh: '🇨🇳',
+    ko: '🇰🇷',
+    th: '🇹🇭',
+    ja: '🇯🇵',
+  };
+
   return (
     <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-pink-50 via-green-50 to-pink-50/30">
       {/* Subtle Background Pattern */}
       <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
         {/* Subtle Grid Pattern */}
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000,transparent)]" />
+      </div>
+
+      {/* Language Indicator - Floating in top right */}
+      <div className="fixed top-4 right-4 z-50 glass-strong rounded-full px-3 py-2 shadow-soft-lg animate-scale-in">
+        <span className="text-lg" title={`Current language: ${language}`}>
+          {languageFlags[language] || '🌐'}
+        </span>
       </div>
 
       {/* Main Content Container */}
