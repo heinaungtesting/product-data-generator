@@ -34,7 +34,7 @@ export default function BarcodeScanner({ onScanSuccess, onClose }: BarcodeScanne
             console.log('Barcode scanned:', decodedText);
             onScanSuccess(decodedText);
           },
-          (errorMessage) => {
+          () => {
             // Error callback (fires frequently, so we ignore it)
             // This is just for scan failures, not critical errors
           }

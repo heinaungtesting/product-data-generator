@@ -1,6 +1,5 @@
 'use client';
 
-import { useTranslation } from 'react-i18next';
 import type { Product } from '@/lib/db';
 import type { Language } from '@/lib/store';
 
@@ -23,8 +22,6 @@ export default function CompareView({
   onSelectRight,
   onSelectBoth,
 }: CompareViewProps) {
-  const { t } = useTranslation();
-
   const getName = (product: Product) => {
     return product.name[language] || product.name.en || product.name.ja || 'Unnamed';
   };
@@ -69,7 +66,7 @@ export default function CompareView({
             <div className="rounded-2xl border-2 border-slate-300 bg-white p-4 shadow-lg">
               <div className="mb-3 text-center">
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Customer's Choice
+                  Customer&apos;s Choice
                 </p>
                 <p className="text-2xs text-slate-400">
                   客户选择 / 고객 선택 / ลูกค้าเลือก
