@@ -16,7 +16,7 @@ import {
   type Product,
 } from "@pdg/schema";
 
-const LOCALIZABLE_FIELDS = ["name", "description", "effects", "sideEffects", "goodFor"] as const;
+const LOCALIZABLE_FIELDS = ["name", "description", "effects", "sideEffects", "goodFor", "warnings"] as const;
 const HAS_ZH_LANGUAGE = LANGUAGES.includes("zh" as LanguageCode);
 const MAX_PRODUCTS = 100; // Limit for local storage optimization
 
@@ -123,6 +123,7 @@ type ProductRecord = {
   id: string;
   category: string;
   pointValue: number;
+  image?: string | null;
   contentUpdatedAt: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -135,6 +136,7 @@ type ProductRecord = {
     effects: string;
     sideEffects: string;
     goodFor: string;
+    warnings: string;
   }>;
   tags: Array<{
     productId: string;
@@ -162,6 +164,7 @@ const mapProductRecord = (record: ProductRecord): Product => {
     localized.effects[lang] = text.effects;
     localized.sideEffects[lang] = text.sideEffects;
     localized.goodFor[lang] = text.goodFor;
+    localized.warnings[lang] = text.warnings || "";
   });
 
   const tags = record.tags.map((entry) => entry.tag.name);
@@ -171,12 +174,14 @@ const mapProductRecord = (record: ProductRecord): Product => {
       id: record.id,
       category: record.category as "health" | "cosmetic",
       pointValue: record.pointValue,
+      image: record.image || undefined,
       tags,
       name: localized.name,
       description: localized.description,
       effects: localized.effects,
       sideEffects: localized.sideEffects,
       goodFor: localized.goodFor,
+      warnings: localized.warnings,
       updatedAt: record.contentUpdatedAt.toISOString(),
     }),
   );
@@ -220,6 +225,7 @@ const upsertTexts = async (tx: Prisma.TransactionClient, product: Product) => {
           effects: product.effects[lang],
           sideEffects: product.sideEffects[lang],
           goodFor: product.goodFor[lang],
+          warnings: product.warnings?.[lang] || "",
         },
         update: {
           name: product.name[lang],
@@ -227,6 +233,7 @@ const upsertTexts = async (tx: Prisma.TransactionClient, product: Product) => {
           effects: product.effects[lang],
           sideEffects: product.sideEffects[lang],
           goodFor: product.goodFor[lang],
+          warnings: product.warnings?.[lang] || "",
         },
       }),
     ),
@@ -259,11 +266,13 @@ export const saveProduct = async (input: Product, tx?: Prisma.TransactionClient)
       id: parsed.id,
       category: parsed.category,
       pointValue: parsed.pointValue,
+      image: parsed.image || null,
       contentUpdatedAt: new Date(parsed.updatedAt),
     },
     update: {
       category: parsed.category,
       pointValue: parsed.pointValue,
+      image: parsed.image || null,
       contentUpdatedAt: new Date(parsed.updatedAt),
     },
   });

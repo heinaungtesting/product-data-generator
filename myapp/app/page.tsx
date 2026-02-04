@@ -8,6 +8,7 @@ import { useLiveQuery } from '@/lib/hooks';
 import { db, type Product } from '@/lib/db';
 import { useAppStore, type Language } from '@/lib/store';
 import { syncNow } from '@/lib/sync';
+import { isValidImagePath } from '@/lib/image-utils';
 
 export default function HomePage() {
   const router = useRouter();
@@ -459,11 +460,19 @@ export default function HomePage() {
                       className="group relative block aspect-[4/3] overflow-hidden rounded-3xl bg-gradient-mesh from-brand-100 via-accent-100 to-brand-200 focus-ring transition-all duration-300 hover:scale-[1.02]"
                       aria-label={`View details for ${displayName}`}
                     >
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="text-5xl font-black text-brand-600 drop-shadow-lg transition-transform duration-300 group-hover:scale-110">
-                          {initials}
-                        </span>
-                      </div>
+                      {product.image && isValidImagePath(product.image) ? (
+                        <img 
+                          src={product.image} 
+                          alt={displayName}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <span className="text-5xl font-black text-brand-600 drop-shadow-lg transition-transform duration-300 group-hover:scale-110">
+                            {initials}
+                          </span>
+                        </div>
+                      )}
                       {/* Gradient Overlay on Hover */}
                       <div className="absolute inset-0 bg-gradient-brand opacity-0 group-hover:opacity-10 transition-opacity duration-300" />
                     </button>
