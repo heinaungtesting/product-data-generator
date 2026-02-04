@@ -53,6 +53,22 @@ export const localizedTextSchema = createLocalizedFieldSchema({
   maxLength: MAX_TEXT_LENGTH,
 });
 
+// Optional localized text schema (for warnings)
+const createOptionalLocalizedFieldSchema = (opts: { fieldLabel: string; maxLength: number }) =>
+  z.object(
+    Object.fromEntries(
+      LANGUAGES.map((lang) => [
+        lang,
+        z.string().max(opts.maxLength, `${opts.fieldLabel} (${lang.toUpperCase()}) must be under ${opts.maxLength} characters`).default(""),
+      ]),
+    ) as Record<LanguageCode, z.ZodDefault<z.ZodString>>,
+  );
+
+export const localizedWarningsSchema = createOptionalLocalizedFieldSchema({
+  fieldLabel: "Warnings",
+  maxLength: MAX_TEXT_LENGTH,
+});
+
 const productTextField = (fieldLabel: string, maxLength: number) =>
   buildFieldSchema(fieldLabel, maxLength);
 
@@ -111,13 +127,7 @@ export const productSchema = z
     effects: localizedTextSchema,
     sideEffects: localizedTextSchema,
     goodFor: localizedTextSchema,
-    warnings: z
-      .object(
-        Object.fromEntries(
-          LANGUAGES.map((lang) => [lang, z.string().max(MAX_TEXT_LENGTH, `Warnings (${lang.toUpperCase()}) must be under ${MAX_TEXT_LENGTH} characters`).default("")]),
-        ) as Record<LanguageCode, z.ZodString>,
-      )
-      .default(Object.fromEntries(LANGUAGES.map((lang) => [lang, ""])) as Record<LanguageCode, string>),
+    warnings: localizedWarningsSchema.default(Object.fromEntries(LANGUAGES.map((lang) => [lang, ""])) as Record<LanguageCode, string>),
     updatedAt: z
       .string()
       .datetime({ offset: true })
