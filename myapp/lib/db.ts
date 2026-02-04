@@ -9,6 +9,9 @@ export interface Product {
   id: string;
   category: 'health' | 'cosmetic';
   pointValue: number;
+  barcode?: string;
+  recommendedProductId?: string | null;
+  salesMessage?: Record<string, string>;
   name: Record<string, string>;
   description: Record<string, string>;
   effects: Record<string, string>;
@@ -159,4 +162,16 @@ export async function searchProducts(query: string, lang: string = 'en'): Promis
              product.tags.some(tag => tag.toLowerCase().includes(lowerQuery));
     })
     .toArray();
+}
+
+export async function findProductByBarcode(barcode: string): Promise<Product | null> {
+  if (!barcode || !barcode.trim()) {
+    return null;
+  }
+  
+  const product = await db.products
+    .filter(p => p.barcode === barcode.trim())
+    .first();
+  
+  return product ?? null;
 }

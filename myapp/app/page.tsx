@@ -3,11 +3,16 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
+import dynamic from 'next/dynamic';
 import AppShell from '@/components/AppShell';
 import { useLiveQuery } from '@/lib/hooks';
-import { db, type Product } from '@/lib/db';
+import { db, findProductByBarcode, type Product } from '@/lib/db';
 import { useAppStore, type Language } from '@/lib/store';
 import { syncNow } from '@/lib/sync';
+
+// Dynamically import scanner and compare components
+const BarcodeScanner = dynamic(() => import('@/components/BarcodeScanner'), { ssr: false });
+const CompareView = dynamic(() => import('@/components/CompareView'), { ssr: false });
 
 export default function HomePage() {
   const router = useRouter();
@@ -28,13 +33,16 @@ export default function HomePage() {
   const [categoryFilter, setCategoryFilter] = useState<'all' | 'health' | 'cosmetic'>('all');
   const [savingProductId, setSavingProductId] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<'recent' | 'name' | 'points'>('recent');
+  const [showScanner, setShowScanner] = useState(false);
+  const [scanResult, setScanResult] = useState<{ found: boolean; barcode: string; product?: Product } | null>(null);
+  const [compareProducts, setCompareProducts] = useState<{ left: Product; right: Product } | null>(null);
 
   const languageOptions: Array<{ code: Language; label: string; flag: string }> = [
     { code: 'en', label: 'English', flag: '🇺🇸' },
-    { code: 'ja', label: '日本語', flag: '🇯🇵' },
     { code: 'zh', label: '中文', flag: '🇨🇳' },
-    { code: 'th', label: 'ไทย', flag: '🇹🇭' },
     { code: 'ko', label: '한국어', flag: '🇰🇷' },
+    { code: 'th', label: 'ไทย', flag: '🇹🇭' },
+    { code: 'ja', label: '日本語', flag: '🇯🇵' },
   ];
 
   useEffect(() => {
@@ -219,6 +227,32 @@ export default function HomePage() {
     }
   }, [language, resolveName]);
 
+  const handleScanSuccess = useCallback(async (barcode: string) => {
+    setShowScanner(false);
+    
+    try {
+      const product = await findProductByBarcode(barcode);
+      
+      if (product) {
+        setScanResult({ found: true, barcode, product });
+      } else {
+        setScanResult({ found: false, barcode });
+      }
+    } catch (error) {
+      console.error('Error finding product:', error);
+      setScanResult({ found: false, barcode });
+    }
+  }, []);
+
+  const handleCompare = useCallback((product: Product) => {
+    if (!product.recommendedProductId) return;
+    
+    const recommended = dbProducts?.find(p => p.id === product.recommendedProductId);
+    if (recommended) {
+      setCompareProducts({ left: product, right: recommended });
+    }
+  }, [dbProducts]);
+
   const lastSyncLabel = lastSyncTime
     ? new Date(lastSyncTime).toLocaleString()
     : t('sync') + ' not run';
@@ -226,6 +260,44 @@ export default function HomePage() {
   return (
     <AppShell>
       <div className="relative space-y-7">
+        {/* Welcome Banner */}
+        <section className="glass-strong rounded-3xl p-6 shadow-soft-lg text-center space-y-3 animate-fade-in">
+          <h1 className="text-2xl font-bold text-slate-900">Welcome! 🌏</h1>
+          <p className="text-sm font-semibold text-slate-700">
+            Japanese Drugstore Product Guide
+          </p>
+          <p className="text-xs text-slate-600">
+            日本药妆店产品指南 / 일본 드럭스토어 가이드 / คู่มือร้านขายยาญี่ปุ่น
+          </p>
+          
+          {/* Tourist Tip */}
+          <div className="mt-4 rounded-xl bg-blue-50 px-4 py-3 text-left">
+            <p className="text-sm text-blue-900">
+              {language === 'en' && '💡 Tip: Show this screen to store staff for assistance'}
+              {language === 'zh' && '💡 提示：向店员展示此屏幕以获得帮助'}
+              {language === 'ko' && '💡 팁: 직원에게 이 화면을 보여주세요'}
+              {language === 'th' && '💡 เคล็ดลับ: แสดงหน้าจอนี้ให้พนักงานดู'}
+              {language === 'ja' && '💡 ヒント：この画面をスタッフに見せてください'}
+            </p>
+          </div>
+        </section>
+
+        {/* Barcode Scanner Button */}
+        <section className="animate-scale-in">
+          <button
+            onClick={() => setShowScanner(true)}
+            className="w-full rounded-3xl bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-5 text-white shadow-brand-lg transition-all hover:from-blue-700 hover:to-purple-700 active:scale-95"
+          >
+            <div className="flex items-center justify-center gap-3">
+              <span className="text-3xl">📷</span>
+              <div className="text-left">
+                <p className="text-lg font-bold">SCAN BARCODE</p>
+                <p className="text-xs opacity-90">扫描条码 / 바코드 스캔 / สแกนบาร์โค้ด</p>
+              </div>
+            </div>
+          </button>
+        </section>
+
         {/* Search Section with Glass Effect */}
         <section className="space-y-5 animate-scale-in">
           {/* Search Input */}
@@ -236,7 +308,7 @@ export default function HomePage() {
                 type="search"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                placeholder="Search products, effects, ingredients..."
+                placeholder="Search... (vitamin, 维生素, 비타민, วิตามิน)"
                 className="input-field h-16 text-base pr-14 shadow-soft-lg"
                 aria-label="Search products by name, effects, or ingredients"
               />
@@ -288,7 +360,9 @@ export default function HomePage() {
                         : 'bg-white/70 text-slate-600 hover:bg-white hover:scale-105 active:scale-95 border border-slate-200/50'
                     }`}
                   >
-                    {cat === 'health' ? '💊 Health' : cat === 'cosmetic' ? '💄 Cosmetic' : '✨ All'}
+                    {cat === 'all' && '✨ All / 全部 / 전체 / ทั้งหมด'}
+                    {cat === 'health' && '💊 Health / 健康 / 건강 / สุขภาพ'}
+                    {cat === 'cosmetic' && '💄 Beauty / 美容 / 뷰티 / ความงาม'}
                   </button>
                 ))}
               </div>
@@ -510,6 +584,22 @@ export default function HomePage() {
                         </div>
                       )}
 
+                      {/* Compare Button (if has recommendation) */}
+                      {product.recommendedProductId && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCompare(product);
+                          }}
+                          className="w-full rounded-2xl px-5 py-3 text-sm font-bold bg-amber-500 text-white shadow-lg transition-all hover:bg-amber-600 hover:scale-105 active:scale-95"
+                        >
+                          <span className="inline-flex items-center gap-2">
+                            <span className="text-lg">⚖️</span>
+                            Compare / 比较 / 비교
+                          </span>
+                        </button>
+                      )}
+
                       {/* Save Button */}
                       <button
                         onClick={(e) => {
@@ -526,12 +616,20 @@ export default function HomePage() {
                         {savingProductId === product.id ? (
                           <span className="inline-flex items-center gap-2">
                             <span className="text-lg">✓</span>
-                            Saved!
+                            {language === 'en' && 'Added!'}
+                            {language === 'zh' && '已添加！'}
+                            {language === 'ko' && '추가됨!'}
+                            {language === 'th' && 'เพิ่มแล้ว!'}
+                            {language === 'ja' && '追加しました！'}
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-2">
-                            <span className="text-lg">📝</span>
-                            Save to Log
+                            <span className="text-lg">📋</span>
+                            {language === 'en' && 'Add to My List'}
+                            {language === 'zh' && '添加到清单'}
+                            {language === 'ko' && '목록에 추가'}
+                            {language === 'th' && 'เพิ่มในรายการ'}
+                            {language === 'ja' && 'リストに追加'}
                           </span>
                         )}
                       </button>
@@ -564,6 +662,141 @@ export default function HomePage() {
           </div>
         )}
       </div>
+
+      {/* Barcode Scanner Modal */}
+      {showScanner && (
+        <BarcodeScanner
+          onScanSuccess={handleScanSuccess}
+          onClose={() => setShowScanner(false)}
+        />
+      )}
+
+      {/* Scan Result Modal */}
+      {scanResult && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
+            {scanResult.found && scanResult.product ? (
+              <>
+                <div className="text-center">
+                  <div className="mb-4 text-6xl">✅</div>
+                  <h2 className="text-xl font-bold text-slate-900">
+                    {language === 'en' && 'Product Found!'}
+                    {language === 'zh' && '找到了！'}
+                    {language === 'ko' && '찾았습니다!'}
+                    {language === 'th' && 'พบสินค้า!'}
+                    {language === 'ja' && '見つかりました！'}
+                  </h2>
+                  <p className="mt-2 text-sm text-slate-600">
+                    {resolveName(scanResult.product, language)}
+                  </p>
+                </div>
+                <div className="mt-6 grid gap-3">
+                  <button
+                    onClick={() => {
+                      handleOpenProduct(scanResult.product!.id);
+                      setScanResult(null);
+                    }}
+                    className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white hover:bg-blue-700"
+                  >
+                    View Details
+                  </button>
+                  {scanResult.product.recommendedProductId && (
+                    <button
+                      onClick={() => {
+                        handleCompare(scanResult.product!);
+                        setScanResult(null);
+                      }}
+                      className="rounded-xl bg-amber-500 px-4 py-3 text-sm font-bold text-white hover:bg-amber-600"
+                    >
+                      ⚖️ Compare
+                    </button>
+                  )}
+                  <button
+                    onClick={() => {
+                      handleSaveToLog(scanResult.product!);
+                      setScanResult(null);
+                    }}
+                    className="rounded-xl bg-green-600 px-4 py-3 text-sm font-bold text-white hover:bg-green-700"
+                  >
+                    📋 Add to List
+                  </button>
+                  <button
+                    onClick={() => setScanResult(null)}
+                    className="rounded-xl bg-slate-200 px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-300"
+                  >
+                    Close
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="text-center">
+                  <div className="mb-4 text-6xl">❌</div>
+                  <h2 className="text-xl font-bold text-slate-900">
+                    {language === 'en' && 'Not Found'}
+                    {language === 'zh' && '未找到'}
+                    {language === 'ko' && '찾을 수 없음'}
+                    {language === 'th' && 'ไม่พบ'}
+                    {language === 'ja' && '見つかりません'}
+                  </h2>
+                  <p className="mt-2 text-sm text-slate-600">
+                    Barcode: {scanResult.barcode}
+                  </p>
+                </div>
+                <div className="mt-6 grid gap-3">
+                  <button
+                    onClick={() => {
+                      setSearchInput(scanResult.barcode);
+                      setScanResult(null);
+                    }}
+                    className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white hover:bg-blue-700"
+                  >
+                    🔍 Search Manually
+                  </button>
+                  <button
+                    onClick={() => {
+                      setScanResult(null);
+                      setShowScanner(true);
+                    }}
+                    className="rounded-xl bg-purple-600 px-4 py-3 text-sm font-bold text-white hover:bg-purple-700"
+                  >
+                    📷 Scan Again
+                  </button>
+                  <button
+                    onClick={() => setScanResult(null)}
+                    className="rounded-xl bg-slate-200 px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-300"
+                  >
+                    Close
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Compare View Modal */}
+      {compareProducts && (
+        <CompareView
+          leftProduct={compareProducts.left}
+          rightProduct={compareProducts.right}
+          language={language}
+          onClose={() => setCompareProducts(null)}
+          onSelectLeft={() => {
+            handleSaveToLog(compareProducts.left);
+            setCompareProducts(null);
+          }}
+          onSelectRight={() => {
+            handleSaveToLog(compareProducts.right);
+            setCompareProducts(null);
+          }}
+          onSelectBoth={async () => {
+            await handleSaveToLog(compareProducts.left);
+            await handleSaveToLog(compareProducts.right);
+            setCompareProducts(null);
+          }}
+        />
+      )}
     </AppShell>
   );
 }
