@@ -3,6 +3,7 @@
 import { ReactNode } from 'react';
 import TopBar from './TopBar';
 import { useAppStore } from '@/lib/store';
+import { LANGUAGE_FLAGS } from '@/lib/constants';
 
 interface AppShellProps {
   children: ReactNode;
@@ -10,14 +11,6 @@ interface AppShellProps {
 
 export default function AppShell({ children }: AppShellProps) {
   const { language } = useAppStore();
-  
-  const languageFlags: Record<string, string> = {
-    en: '🇺🇸',
-    zh: '🇨🇳',
-    ko: '🇰🇷',
-    th: '🇹🇭',
-    ja: '🇯🇵',
-  };
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-pink-50 via-green-50 to-pink-50/30">
@@ -30,7 +23,7 @@ export default function AppShell({ children }: AppShellProps) {
       {/* Language Indicator - Floating in top right */}
       <div className="fixed top-4 right-4 z-50 glass-strong rounded-full px-3 py-2 shadow-soft-lg animate-scale-in">
         <span className="text-lg" title={`Current language: ${language}`}>
-          {languageFlags[language] || '🌐'}
+          {LANGUAGE_FLAGS[language] || '🌐'}
         </span>
       </div>
 

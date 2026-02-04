@@ -8,6 +8,7 @@ import { useLiveQuery } from '@/lib/hooks';
 import { db, type Product } from '@/lib/db';
 import { useAppStore, type Language } from '@/lib/store';
 import { syncNow } from '@/lib/sync';
+import { LANGUAGE_OPTIONS } from '@/lib/constants';
 
 export default function HomePage() {
   const router = useRouter();
@@ -28,14 +29,6 @@ export default function HomePage() {
   const [categoryFilter, setCategoryFilter] = useState<'all' | 'health' | 'cosmetic'>('all');
   const [savingProductId, setSavingProductId] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<'recent' | 'name' | 'points'>('recent');
-
-  const languageOptions: Array<{ code: Language; label: string; flag: string }> = [
-    { code: 'en', label: 'English', flag: '🇺🇸' },
-    { code: 'zh', label: '中文', flag: '🇨🇳' },
-    { code: 'ko', label: '한국어', flag: '🇰🇷' },
-    { code: 'th', label: 'ไทย', flag: '🇹🇭' },
-    { code: 'ja', label: '日本語', flag: '🇯🇵' },
-  ];
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -252,7 +245,7 @@ export default function HomePage() {
 
           {/* Language Selector Pills */}
           <div className="flex flex-wrap items-center justify-center gap-2.5">
-            {languageOptions.map((option) => (
+            {LANGUAGE_OPTIONS.map((option) => (
               <button
                 key={option.code}
                 type="button"
