@@ -77,6 +77,7 @@ export default function ProductDetailPage() {
   const currentEffects = product.effects[language] || product.effects.ja;
   const currentSideEffects = product.sideEffects[language] || product.sideEffects.ja;
   const currentGoodFor = product.goodFor[language] || product.goodFor.ja;
+  const currentWarnings = product.warnings?.[language] || product.warnings?.ja || "";
 
   const handleSaveToLog = async () => {
     setSaving(true);
@@ -165,15 +166,25 @@ export default function ProductDetailPage() {
       <div className="relative mx-auto mt-8 max-w-5xl px-6 animate-scale-in">
         <div className="relative overflow-hidden rounded-5xl glass-strong p-8 shadow-brand-lg">
           {/* Decorative Background Gradient */}
-          <div className="absolute inset-0 bg-gradient-mesh from-brand-100 via-accent-100 to-brand-200 opacity-30" />
+          {!product.image && (
+            <div className="absolute inset-0 bg-gradient-mesh from-brand-100 via-accent-100 to-brand-200 opacity-30" />
+          )}
 
           <div className="relative flex items-center justify-center aspect-[4/3] max-h-96">
-            <div className="text-center space-y-4">
-              <div className="inline-flex items-center justify-center w-32 h-32 rounded-full bg-gradient-brand shadow-brand-lg">
-                <span className="text-6xl font-black text-white drop-shadow-lg">{initials}</span>
+            {product.image ? (
+              <img
+                src={product.image}
+                alt={currentName}
+                className="h-full w-full object-contain rounded-3xl"
+              />
+            ) : (
+              <div className="text-center space-y-4">
+                <div className="inline-flex items-center justify-center w-32 h-32 rounded-full bg-gradient-brand shadow-brand-lg">
+                  <span className="text-6xl font-black text-white drop-shadow-lg">{initials}</span>
+                </div>
+                <p className="text-sm text-slate-500 font-medium">Product Preview</p>
               </div>
-              <p className="text-sm text-slate-500 font-medium">Product Preview</p>
-            </div>
+            )}
           </div>
         </div>
       </div>
@@ -285,6 +296,19 @@ export default function ProductDetailPage() {
               <h2 className="text-xl font-bold text-slate-900">Good For</h2>
             </div>
             <p className="text-base leading-relaxed text-slate-700 whitespace-pre-line">{currentGoodFor}</p>
+          </section>
+        )}
+
+        {/* Warnings */}
+        {currentWarnings && (
+          <section className="rounded-4xl p-7 shadow-soft-lg animate-scale-in bg-gradient-to-br from-amber-50 to-yellow-50 border-2 border-amber-200" style={{ animationDelay: '0.4s' }}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-200 to-yellow-200 shadow-soft">
+                <span className="text-lg">⚠️</span>
+              </div>
+              <h2 className="text-xl font-bold text-amber-900">Warning / 注意 / 주의 / คำเตือน</h2>
+            </div>
+            <p className="text-base leading-relaxed text-amber-900 font-medium whitespace-pre-line">{currentWarnings}</p>
           </section>
         )}
       </div>

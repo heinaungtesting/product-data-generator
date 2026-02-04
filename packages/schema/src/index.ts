@@ -65,12 +65,13 @@ export const productTextSchema = z
     effects: productTextField("Effects", MAX_TEXT_LENGTH),
     sideEffects: productTextField("Side Effects", MAX_TEXT_LENGTH),
     goodFor: productTextField("Good For", MAX_TEXT_LENGTH),
+    warnings: z.string().max(MAX_TEXT_LENGTH, `Warnings must be under ${MAX_TEXT_LENGTH} characters`).default(""),
   })
   .superRefine((value, ctx) => {
     if (value.language !== "ja") {
       return;
     }
-    (["name", "description", "effects", "sideEffects", "goodFor"] as const).forEach((field) => {
+    (["name", "description", "effects", "sideEffects", "goodFor", "warnings"] as const).forEach((field) => {
       if (BANNED_JP_PATTERN.test(value[field])) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -104,11 +105,19 @@ export const productSchema = z
       )
       .max(25, "Too many tags specified")
       .default([]),
+    image: z.string().optional(),
     name: localizedNameSchema,
     description: localizedTextSchema,
     effects: localizedTextSchema,
     sideEffects: localizedTextSchema,
     goodFor: localizedTextSchema,
+    warnings: z
+      .object(
+        Object.fromEntries(
+          LANGUAGES.map((lang) => [lang, z.string().max(MAX_TEXT_LENGTH, `Warnings (${lang.toUpperCase()}) must be under ${MAX_TEXT_LENGTH} characters`).default("")]),
+        ) as Record<LanguageCode, z.ZodString>,
+      )
+      .default(Object.fromEntries(LANGUAGES.map((lang) => [lang, ""])) as Record<LanguageCode, string>),
     updatedAt: z
       .string()
       .datetime({ offset: true })
@@ -143,11 +152,13 @@ export const createEmptyProduct = (): Product => {
     category: "health",
     pointValue: 0,
     tags: [],
+    image: undefined,
     name: emptyLocalizedField(),
     description: emptyLocalizedField(),
     effects: emptyLocalizedField(),
     sideEffects: emptyLocalizedField(),
     goodFor: emptyLocalizedField(),
+    warnings: emptyLocalizedField(),
     updatedAt: nowIso,
   };
 };

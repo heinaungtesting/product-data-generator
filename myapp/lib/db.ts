@@ -9,11 +9,13 @@ export interface Product {
   id: string;
   category: 'health' | 'cosmetic';
   pointValue: number;
+  image?: string;
   name: Record<string, string>;
   description: Record<string, string>;
   effects: Record<string, string>;
   sideEffects: Record<string, string>;
   goodFor: Record<string, string>;
+  warnings?: Record<string, string>;
   tags: string[];
   updatedAt: string;
   syncedAt?: string;

@@ -1,5 +1,5 @@
-import { useMemo } from "react";
-import type { FormEvent } from "react";
+import { useMemo, useState } from "react";
+import type { FormEvent, ChangeEvent } from "react";
 import type { Product } from "@/schema";
 import { LANGUAGES, createEmptyProduct } from "@/schema";
 
@@ -9,6 +9,14 @@ const LANGUAGE_LABELS: Record<(typeof LANGUAGES)[number], string> = {
   th: "Thai",
   ko: "Korean",
   zh: "Chinese",
+};
+
+const LANGUAGE_FLAGS: Record<(typeof LANGUAGES)[number], string> = {
+  en: "🇺🇸",
+  zh: "🇨🇳",
+  ko: "🇰🇷",
+  th: "🇹🇭",
+  ja: "🇯🇵",
 };
 
 const FIELD_GROUPS: Array<{
@@ -52,11 +60,16 @@ export function ProductForm({
   autosaveStatus,
   onClearValidation,
 }: ProductFormProps) {
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
   const localizedErrorKeys = useMemo(() => {
     const keys = new Set<string>();
     FIELD_GROUPS.forEach(({ key }) => {
       LANGUAGES.forEach((lang) => keys.add(`${key}.${lang}`));
     });
+    // Add warnings keys
+    LANGUAGES.forEach((lang) => keys.add(`warnings.${lang}`));
     return keys;
   }, []);
   const tagsValue = useMemo(() => product.tags.join(", "), [product.tags]);
@@ -73,6 +86,41 @@ export function ProductForm({
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     onSubmit(product);
+  };
+
+  const handleImageUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    setUploadError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("productId", product.id);
+
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Upload failed");
+      }
+
+      onChange({ ...product, image: data.path });
+    } catch (error) {
+      setUploadError(error instanceof Error ? error.message : "Failed to upload image");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    onChange({ ...product, image: undefined });
   };
 
   const clearFieldError = (paths: string[]) => {
@@ -153,6 +201,63 @@ export function ProductForm({
             }}
           />
         </label>
+      </div>
+
+      {/* Product Image Upload */}
+      <div className="space-y-3 rounded-lg bg-slate-50 p-4 dark:bg-slate-800/60">
+        <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+          Product Image
+        </span>
+        
+        {product.image ? (
+          <div className="space-y-3">
+            <div className="relative aspect-video overflow-hidden rounded-lg bg-slate-100 dark:bg-slate-900">
+              <img
+                src={product.image}
+                alt="Product preview"
+                className="h-full w-full object-contain"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={handleRemoveImage}
+              className="rounded-lg border border-red-300 px-3 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-900/30"
+            >
+              Remove Image
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <label className="flex cursor-pointer flex-col items-center gap-2 rounded-lg border-2 border-dashed border-slate-300 bg-white px-6 py-8 text-center transition hover:border-blue-400 hover:bg-blue-50 dark:border-slate-600 dark:bg-slate-900 dark:hover:border-blue-500 dark:hover:bg-blue-900/20">
+              <svg className="h-12 w-12 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                📷 Click to upload or drag & drop
+              </span>
+              <span className="text-xs text-slate-500 dark:text-slate-400">
+                JPG, PNG, WebP (max 5MB)
+              </span>
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={handleImageUpload}
+                disabled={uploading}
+                className="hidden"
+              />
+            </label>
+            {uploading && (
+              <p className="text-xs text-blue-600 dark:text-blue-400">
+                Uploading image...
+              </p>
+            )}
+            {uploadError && (
+              <p className="text-xs text-red-600 dark:text-red-400">
+                {uploadError}
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="grid gap-6">
@@ -244,6 +349,66 @@ export function ProductForm({
             </div>
           </div>
         ))}
+
+        {/* Warnings Field */}
+        <div className="space-y-3 rounded-lg bg-slate-50 p-4 dark:bg-slate-800/60">
+          <div className="flex items-center gap-2">
+            <span className="text-lg">⚠️</span>
+            <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+              Warnings / Safety Information
+            </span>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {LANGUAGES.map((lang) => {
+              const value = product.warnings?.[lang] || "";
+              const labelForLang = LANGUAGE_LABELS[lang];
+              const flag = LANGUAGE_FLAGS[lang];
+              const inputId = `warnings-${lang}`;
+              const errorKey = `warnings.${lang}`;
+              const fieldError = validationErrors?.[errorKey];
+
+              return (
+                <label
+                  key={lang}
+                  htmlFor={inputId}
+                  className="flex flex-col gap-2 text-xs font-medium uppercase tracking-wide text-slate-600 dark:text-slate-300"
+                >
+                  <span className="flex items-center gap-1">
+                    <span>{flag}</span>
+                    <span>{labelForLang}</span>
+                  </span>
+                  <textarea
+                    id={inputId}
+                    aria-invalid={Boolean(fieldError)}
+                    placeholder="e.g., Do not take if pregnant..."
+                    className={`min-h-[90px] rounded-lg border px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-0 dark:bg-slate-900 dark:text-slate-100 ${
+                      fieldError
+                        ? "border-red-400 dark:border-red-500"
+                        : "border-slate-200 dark:border-slate-700"
+                    }`}
+                    value={value}
+                    onChange={(event) =>
+                      onChange({
+                        ...product,
+                        warnings: {
+                          ...product.warnings,
+                          [lang]: event.target.value,
+                        },
+                      })
+                    }
+                    rows={3}
+                    onFocus={() => clearFieldError([errorKey])}
+                  />
+                  {fieldError && (
+                    <span className="text-[11px] font-semibold text-red-500 dark:text-red-400">
+                      {fieldError}
+                    </span>
+                  )}
+                </label>
+              );
+            })}
+          </div>
+        </div>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">

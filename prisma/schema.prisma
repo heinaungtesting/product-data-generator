@@ -24,6 +24,7 @@ model Product {
   id               String          @id @default(uuid())
   category         ProductCategory
   pointValue       Int
+  image            String?
   contentUpdatedAt DateTime
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
@@ -41,6 +42,7 @@ model ProductText {
   effects     String
   sideEffects String
   goodFor     String
+  warnings    String   @default("")
 
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
