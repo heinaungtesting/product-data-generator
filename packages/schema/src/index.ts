@@ -121,7 +121,16 @@ export const productSchema = z
       )
       .max(25, "Too many tags specified")
       .default([]),
+    barcode: z.string().optional(),
     image: z.string().optional(),
+    recommendedProductId: z.string().uuid().optional().nullable(),
+    salesMessage: z
+      .object(
+        Object.fromEntries(
+          LANGUAGES.map((lang) => [lang, z.string().optional()]),
+        ) as Record<LanguageCode, z.ZodOptional<z.ZodString>>,
+      )
+      .optional(),
     name: localizedNameSchema,
     description: localizedTextSchema,
     effects: localizedTextSchema,
@@ -162,7 +171,10 @@ export const createEmptyProduct = (): Product => {
     category: "health",
     pointValue: 0,
     tags: [],
+    barcode: undefined,
     image: undefined,
+    recommendedProductId: null,
+    salesMessage: emptyLocalizedField(),
     name: emptyLocalizedField(),
     description: emptyLocalizedField(),
     effects: emptyLocalizedField(),

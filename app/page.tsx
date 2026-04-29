@@ -491,6 +491,7 @@ export default function Home() {
               statusMessage={statusMessage}
               autosaveStatus={autosaveStatus}
               onClearValidation={handleClearValidation}
+              availableProducts={products}
             />
           </div>
         </section>

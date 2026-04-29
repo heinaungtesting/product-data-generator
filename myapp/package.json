@@ -17,6 +17,7 @@
     "date-fns": "^4.1.0",
     "dexie": "^4.0.1",
     "googleapis": "^166.0.0",
+    "html5-qrcode": "^2.3.8",
     "i18next": "^24.0.0",
     "i18next-browser-languagedetector": "^8.0.0",
     "idb": "^8.0.1",

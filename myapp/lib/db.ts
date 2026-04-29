@@ -9,7 +9,10 @@ export interface Product {
   id: string;
   category: 'health' | 'cosmetic';
   pointValue: number;
+  barcode?: string;
   image?: string;
+  recommendedProductId?: string | null;
+  salesMessage?: Record<string, string>;
   name: Record<string, string>;
   description: Record<string, string>;
   effects: Record<string, string>;
@@ -96,6 +99,13 @@ class MyAppDatabase extends Dexie {
       meta: 'key, updatedAt',
       productImages: null,
     });
+
+    this.version(5).stores({
+      products: 'id, category, *tags, updatedAt, syncedAt, barcode',
+      drafts: 'id, productId, updatedAt',
+      logs: '++id, productId, timestamp, category',
+      meta: 'key, updatedAt',
+    });
   }
 
   async clearAll() {
@@ -161,4 +171,18 @@ export async function searchProducts(query: string, lang: string = 'en'): Promis
              product.tags.some(tag => tag.toLowerCase().includes(lowerQuery));
     })
     .toArray();
+}
+
+export async function findProductByBarcode(barcode: string): Promise<Product | null> {
+  const trimmed = barcode?.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  const product = await db.products
+    .where('barcode')
+    .equals(trimmed)
+    .first();
+  
+  return product ?? null;
 }

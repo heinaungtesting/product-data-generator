@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
+import { useAppStore } from '@/lib/store';
 
 const NAV_ITEMS = [
   { href: '/', translationKey: 'home', fallback: 'Home', icon: '🏠' },
@@ -11,9 +12,18 @@ const NAV_ITEMS = [
   { href: '/settings', translationKey: 'settings', fallback: 'Settings', icon: '⚙️' },
 ];
 
+const LANGUAGE_FLAGS: Record<string, string> = {
+  en: '🇺🇸',
+  zh: '🇨🇳',
+  ko: '🇰🇷',
+  th: '🇹🇭',
+  ja: '🇯🇵',
+};
+
 export default function TopBar() {
   const pathname = usePathname();
   const { t } = useTranslation();
+  const { language } = useAppStore();
 
   const normalizePath = (path: string) => {
     if (path === '/') return '/';
@@ -24,6 +34,20 @@ export default function TopBar() {
 
   return (
     <header className="relative z-40 -mx-5 px-5 animate-slide-down">
+      {/* App Title Bar */}
+      <div className="mb-3 flex items-center justify-between px-2">
+        <div className="flex items-center gap-2">
+          <span className="text-xl">🌐</span>
+          <div>
+            <h1 className="text-sm font-bold text-slate-900">Japan Drugstore Guide</h1>
+            <p className="text-2xs text-slate-500">日本药妆店导购</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-1 rounded-full bg-white/80 px-3 py-1.5 shadow-sm">
+          <span className="text-lg">{LANGUAGE_FLAGS[language] || '🌐'}</span>
+        </div>
+      </div>
+
       <nav className="relative overflow-hidden rounded-[2rem] glass-strong p-2 shadow-brand-lg">
         {/* Gradient Highlight Bar */}
         <div className="absolute inset-0 bg-gradient-to-r from-brand-500/5 via-accent-500/5 to-brand-500/5 opacity-50" />
