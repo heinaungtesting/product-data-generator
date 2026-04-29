@@ -10,6 +10,7 @@ export interface Product {
   category: 'health' | 'cosmetic';
   pointValue: number;
   barcode?: string;
+  image?: string;
   recommendedProductId?: string | null;
   salesMessage?: Record<string, string>;
   name: Record<string, string>;
@@ -17,6 +18,7 @@ export interface Product {
   effects: Record<string, string>;
   sideEffects: Record<string, string>;
   goodFor: Record<string, string>;
+  warnings?: Record<string, string>;
   tags: string[];
   updatedAt: string;
   syncedAt?: string;

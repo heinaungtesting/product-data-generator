@@ -34,7 +34,6 @@ model Product {
   texts              ProductText[]
   tags               ProductTag[]
   salesMessages      ProductSalesMessage[]
-  warnings           ProductWarning[]
   recommendedProduct Product?          @relation("RecommendedProduct", fields: [recommendedProductId], references: [id], onDelete: SetNull)
   recommendedFor     Product[]         @relation("RecommendedProduct")
 }
@@ -48,6 +47,7 @@ model ProductText {
   effects     String
   sideEffects String
   goodFor     String
+  warnings    String   @default("")
 
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 

@@ -211,3 +211,69 @@ All changes are:
 ✅ Tourist-friendly multilingual interface
 ✅ Minimal code changes (surgical approach)
 ✅ No breaking changes to existing features
+
+---
+
+## 📷 Additional Features: Image Upload and Warnings
+
+*Note: These features were merged from the main branch and are now integrated with the barcode scanner and comparison features.*
+
+### Product Image Upload
+
+**Schema Changes:**
+- ✅ Added `image` field (optional string) to product schema
+- ✅ Image paths stored as relative paths (e.g., `/images/products/[product-id].jpg`)
+
+**API Endpoint:**
+- ✅ Created `POST /api/upload` endpoint for image uploads
+- ✅ Validates file types (JPEG, PNG, WebP)
+- ✅ Maximum file size: 5MB
+- ✅ Automatic filename sanitization
+- ✅ Saves to `public/images/products/` directory
+
+**PDG Updates:**
+- ✅ Added image upload button in ProductForm
+- ✅ Image preview after upload
+- ✅ Remove image functionality
+- ✅ Product service saves/loads image paths
+
+**MyApp Display:**
+- ✅ Product images shown in product cards
+- ✅ Full-size images in product detail view
+- ✅ Placeholder image if no image uploaded
+- ✅ Images synced through bundle system
+
+### Multilingual Warnings
+
+**Schema Changes:**
+- ✅ Added `warnings` field to product schema (all 5 languages)
+- ✅ Type: Localized text object (like description, effects)
+- ✅ Max length: 600 characters per language
+- ✅ Defaults to empty strings
+
+**Database:**
+- ✅ Added `warnings` column to ProductText model
+- ✅ Default value: "" (empty string)
+- ✅ Migration: `20260204043858_add_image_and_warnings`
+
+**PDG Form:**
+- ✅ Warnings section with text areas for all languages
+- ✅ Character count displays
+- ✅ Japanese content validation (no medical claims)
+
+**MyApp Display:**
+- ✅ Warnings shown prominently in product detail page
+- ✅ Only displayed if warnings exist for current language
+- ✅ ⚠️ Warning icon for visual emphasis
+- ✅ Red border styling for importance
+
+### Combined Feature Set
+
+The merged implementation now includes:
+1. **Barcode Scanner** 📷 - Camera-based product lookup
+2. **Product Comparison** ⚖️ - Side-by-side with recommendations
+3. **Tourist UI** 🌍 - Multilingual interface
+4. **Image Upload** 📸 - Product photos with validation
+5. **Safety Warnings** ⚠️ - Multilingual safety information
+
+All features work together seamlessly through the bundle sync system.

@@ -53,6 +53,22 @@ export const localizedTextSchema = createLocalizedFieldSchema({
   maxLength: MAX_TEXT_LENGTH,
 });
 
+// Optional localized text schema (for warnings)
+const createOptionalLocalizedFieldSchema = (opts: { fieldLabel: string; maxLength: number }) =>
+  z.object(
+    Object.fromEntries(
+      LANGUAGES.map((lang) => [
+        lang,
+        z.string().max(opts.maxLength, `${opts.fieldLabel} (${lang.toUpperCase()}) must be under ${opts.maxLength} characters`).default(""),
+      ]),
+    ) as Record<LanguageCode, z.ZodDefault<z.ZodString>>,
+  );
+
+export const localizedWarningsSchema = createOptionalLocalizedFieldSchema({
+  fieldLabel: "Warnings",
+  maxLength: MAX_TEXT_LENGTH,
+});
+
 const productTextField = (fieldLabel: string, maxLength: number) =>
   buildFieldSchema(fieldLabel, maxLength);
 
@@ -65,12 +81,13 @@ export const productTextSchema = z
     effects: productTextField("Effects", MAX_TEXT_LENGTH),
     sideEffects: productTextField("Side Effects", MAX_TEXT_LENGTH),
     goodFor: productTextField("Good For", MAX_TEXT_LENGTH),
+    warnings: z.string().max(MAX_TEXT_LENGTH, `Warnings must be under ${MAX_TEXT_LENGTH} characters`).default(""),
   })
   .superRefine((value, ctx) => {
     if (value.language !== "ja") {
       return;
     }
-    (["name", "description", "effects", "sideEffects", "goodFor"] as const).forEach((field) => {
+    (["name", "description", "effects", "sideEffects", "goodFor", "warnings"] as const).forEach((field) => {
       if (BANNED_JP_PATTERN.test(value[field])) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -105,6 +122,7 @@ export const productSchema = z
       .max(25, "Too many tags specified")
       .default([]),
     barcode: z.string().optional(),
+    image: z.string().optional(),
     recommendedProductId: z.string().uuid().optional().nullable(),
     salesMessage: z
       .object(
@@ -118,6 +136,7 @@ export const productSchema = z
     effects: localizedTextSchema,
     sideEffects: localizedTextSchema,
     goodFor: localizedTextSchema,
+    warnings: localizedWarningsSchema.default(Object.fromEntries(LANGUAGES.map((lang) => [lang, ""])) as Record<LanguageCode, string>),
     updatedAt: z
       .string()
       .datetime({ offset: true })
@@ -153,6 +172,7 @@ export const createEmptyProduct = (): Product => {
     pointValue: 0,
     tags: [],
     barcode: undefined,
+    image: undefined,
     recommendedProductId: null,
     salesMessage: emptyLocalizedField(),
     name: emptyLocalizedField(),
@@ -160,6 +180,7 @@ export const createEmptyProduct = (): Product => {
     effects: emptyLocalizedField(),
     sideEffects: emptyLocalizedField(),
     goodFor: emptyLocalizedField(),
+    warnings: emptyLocalizedField(),
     updatedAt: nowIso,
   };
 };
